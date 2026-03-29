@@ -8,6 +8,7 @@ and applies color only to background regions.
 
 import io
 import logging
+import time
 from pathlib import Path
 
 import cv2
@@ -186,8 +187,6 @@ def process_image(raw_bytes: bytes) -> bytes:
     7. Smooth boundaries
     8. Export as high-res PNG
     """
-    import time
-
     start = time.perf_counter()
 
     # Step 1: Load

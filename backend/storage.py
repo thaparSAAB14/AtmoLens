@@ -126,6 +126,10 @@ def get_archive(map_type: Optional[str] = None) -> list[dict]:
     If map_type is given, filter to that type only.
     """
     entries = []
+    
+    if not config.MAP_OUTPUT_DIR.exists():
+        return entries
+    
     search_dirs = (
         [config.MAP_OUTPUT_DIR / map_type]
         if map_type
@@ -167,6 +171,10 @@ def get_archive(map_type: Optional[str] = None) -> list[dict]:
 
 def cleanup_old_maps():
     """Delete processed and original images older than ARCHIVE_DAYS."""
+    if not config.MAP_OUTPUT_DIR.exists():
+        logger.info("Cleanup: MAP_OUTPUT_DIR doesn't exist yet, skipping")
+        return 0
+    
     cutoff = datetime.now(timezone.utc) - timedelta(days=config.ARCHIVE_DAYS)
     removed = 0
 

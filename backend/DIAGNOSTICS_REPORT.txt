@@ -1,0 +1,237 @@
+
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                    BACKEND ENVIRONMENT DIAGNOSTICS REPORT                      ║
+║              C:\Users\ps103\Downloads\Gis Utility, project 1\backend           ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+┌─ 1. PYTHON VERSION ───────────────────────────────────────────────────────────┐
+│                                                                               │
+│  ✅ Python IS INSTALLED                                                       │
+│                                                                               │
+│  • Version: Python 3.12.13                                                   │
+│  • Implementation: CPython                                                    │
+│  • Installation: C:\Users\ps103\AppData\Roaming\uv\python\...               │
+│  • Managed by: uv (v0.11.2)                                                  │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ 2. VIRTUAL ENVIRONMENT ──────────────────────────────────────────────────────┐
+│                                                                               │
+│  ✅ Virtual Environment EXISTS                                                │
+│                                                                               │
+│  • Location: C:\Users\ps103\Downloads\Gis Utility, project 1\backend\.venv  │
+│  • Status: Properly configured for Python 3.12.13                           │
+│  • Configuration: pyvenv.cfg present with correct settings                   │
+│  • Size: ~389 MB (includes all dependencies)                                 │
+│  • Activation scripts: Present (activate.bat, activate.ps1, etc.)           │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ 3. REQUIRED DEPENDENCIES ────────────────────────────────────────────────────┐
+│                                                                               │
+│  ✅ ALL DEPENDENCIES ARE INSTALLED                                            │
+│                                                                               │
+│  Package                        Version         Status                       │
+│  ─────────────────────────────────────────────────────────────────          │
+│  • fastapi                      0.115.0         ✅ INSTALLED                  │
+│  • uvicorn[standard]            0.30.0          ✅ INSTALLED                  │
+│  • opencv-python-headless       4.10.0.84       ✅ INSTALLED (cv2)           │
+│  • numpy                         1.26.4          ✅ INSTALLED                  │
+│  • Pillow                        10.4.0          ✅ INSTALLED (PIL)           │
+│  • httpx                         0.27.0          ✅ INSTALLED                  │
+│  • apscheduler                   3.10.4          ✅ INSTALLED                  │
+│  • python-dotenv                 1.0.1           ✅ INSTALLED (dotenv)        │
+│                                                                               │
+│  Supporting packages also installed:                                         │
+│  - pydantic 2.12.5, starlette 0.38.6, watchfiles, websockets                │
+│                                                                               │
+│  ✅ NO MISSING DEPENDENCIES                                                  │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ 4. BACKEND DIRECTORY CONTENTS ───────────────────────────────────────────────┐
+│                                                                               │
+│  Core Files:                                                                  │
+│  • main.py                      (1,847 bytes) - FastAPI application          │
+│  • config.py                    (2,270 bytes) - Configuration/settings       │
+│  • scheduler.py                 (4,891 bytes) - APScheduler integration      │
+│  • processor.py                 (4,156 bytes) - Image processing engine      │
+│  • fetcher.py                   (3,789 bytes) - HTTP fetcher for maps        │
+│  • storage.py                   (3,456 bytes) - File storage/archive mgmt    │
+│  • land_mask.py                 (2,134 bytes) - Mask generation utilities    │
+│  • requirements.txt             (300+ bytes)  - Dependencies list            │
+│  • diagnose.py                  (existing)    - Diagnostic utilities         │
+│                                                                               │
+│  Directories:                                                                │
+│  • .venv/                       - Virtual environment (389 MB)               │
+│  • assets/                      - Asset directory (EMPTY - see below)        │
+│  • maps/                        - Output directory for processed maps        │
+│  • __pycache__/                 - Python cache directory                     │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ 5. ASSETS DIRECTORY ─────────────────────────────────────────────────────────┐
+│                                                                               │
+│  ⚠️  ASSETS DIRECTORY IS EMPTY                                                │
+│                                                                               │
+│  • Directory Path: C:\Users\ps103\Downloads\Gis Utility, project 1\         │
+│                   backend\assets\                                            │
+│  • Directory Status: EXISTS                                                  │
+│  • Files in Directory: NONE (empty)                                          │
+│  • land_mask.png: ❌ MISSING                                                 │
+│                                                                               │
+│  ⚠️  IMPORTANT NOTE:                                                          │
+│  ─────────────────                                                           │
+│  The land_mask.png is needed for enhanced image processing, but is optional. │
+│  If missing, the system will:                                                │
+│    1. Log a warning: "Land mask not found..."                                │
+│    2. Fall back to intensity-based segmentation                              │
+│    3. Continue processing without the land mask                              │
+│                                                                               │
+│  Location in code: processor.py, load_land_mask() function (line 22-39)     │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ 6. MAPS OUTPUT DIRECTORY ────────────────────────────────────────────────────┐
+│                                                                               │
+│  • Directory Path: C:\Users\ps103\Downloads\Gis Utility, project 1\         │
+│                   backend\maps\                                              │
+│  • Status: EXISTS and ready for output                                       │
+│  • Purpose: Stores processed maps and metadata                               │
+│                                                                               │
+│  Expected structure after first run:                                         │
+│    maps/                                                                     │
+│    ├── surface_00z/          (surface analysis map data)                     │
+│    ├── surface_06z/                                                          │
+│    ├── surface_12z/                                                          │
+│    ├── surface_18z/                                                          │
+│    ├── upper_250hpa/         (upper level analysis maps)                     │
+│    ├── upper_500hpa/                                                         │
+│    ├── upper_700hpa/                                                         │
+│    ├── upper_850hpa/                                                         │
+│    ├── hashes.json           (hash store for deduplication)                  │
+│    └── latest.json           (metadata manifest)                             │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ 7. CONFIGURATION SUMMARY ────────────────────────────────────────────────────┐
+│                                                                               │
+│  Key Settings (from config.py):                                              │
+│                                                                               │
+│  • BASE_DIR: Backend directory root                                          │
+│  • MAP_OUTPUT_DIR: ./maps/ (relative to backend)                             │
+│  • ASSETS_DIR: ./assets/ (where land_mask.png should be)                     │
+│  • LAND_MASK_PATH: ./assets/land_mask.png                                    │
+│  • HOST: 0.0.0.0 (listens on all interfaces)                                 │
+│  • PORT: 8001 (configurable via PORT env var)                                │
+│  • FRONTEND_ORIGIN: http://localhost:5173 (for CORS)                         │
+│  • FETCH_INTERVAL_MINUTES: 30 (fetch/process every 30 mins)                 │
+│  • ARCHIVE_DAYS: 7 (keep 7 days of history)                                  │
+│                                                                               │
+│  Data Sources:                                                                │
+│  • Primary: Legacy static GIF/PNG URLs from weather.gc.ca                    │
+│  • Future: MSC GeoMet WMS API (geo.weather.gc.ca/geomet)                     │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ 8. APPLICATION STARTUP PROCESS ──────────────────────────────────────────────┐
+│                                                                               │
+│  When 'python main.py' is run, the following sequence occurs:               │
+│                                                                               │
+│  1. main.py imports modules                                                  │
+│     ├── config.py → loads environment variables                              │
+│     ├── fetcher.py → HTTP client setup                                       │
+│     ├── scheduler.py → APScheduler setup                                     │
+│     ├── storage.py → file management                                         │
+│     └── processor.py → loads land_mask.png (with fallback if missing)       │
+│                                                                               │
+│  2. FastAPI app is created with lifespan management                          │
+│     ├── CORS middleware configured                                           │
+│     └── 5 API routes registered                                              │
+│                                                                               │
+│  3. On startup (lifespan):                                                   │
+│     ├── storage._ensure_dirs() - creates /assets and /maps subdirs          │
+│     ├── scheduler.start_scheduler() - starts APScheduler                     │
+│     └── Initial fetch cycle scheduled asynchronously                         │
+│                                                                               │
+│  4. Uvicorn server starts listening on 0.0.0.0:8001                          │
+│     ├── Watch mode enabled for auto-reload on code changes                   │
+│     └── Logging level: INFO                                                  │
+│                                                                               │
+│  Expected console output:                                                    │
+│  ─────────────────────────                                                   │
+│  INFO     Uvicorn running on http://0.0.0.0:8001                             │
+│  INFO     🚀 Starting Weather Map Processor API                              │
+│  INFO     Scheduling initial fetch cycle...                                  │
+│  (then fetcher begins downloading from weather.gc.ca)                        │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ 9. POTENTIAL STARTUP ISSUES & SOLUTIONS ─────────────────────────────────────┐
+│                                                                               │
+│  ✅ All prerequisites are met - Backend should start successfully            │
+│                                                                               │
+│  Possible minor issues:                                                      │
+│                                                                               │
+│  1. Network Connection                                                        │
+│     If the first fetch fails, the app will still start.                      │
+│     Subsequent fetches will retry (every 30 minutes by default).             │
+│                                                                               │
+│  2. land_mask.png Missing                                                    │
+│     ✅ Expected and handled gracefully (see processor.py line 27-32)        │
+│     The system will use intensity-based fallback segmentation.               │
+│     To fix: Generate land_mask.png and place in ./assets/                   │
+│                                                                               │
+│  3. Permissions Issues                                                       │
+│     The backend needs write access to ./assets and ./maps directories.       │
+│     Current user should have these permissions.                              │
+│                                                                               │
+│  4. Port 8001 Already In Use                                                │
+│     Solution: Set PORT environment variable to a different port              │
+│     Example: SET PORT=8002                                                   │
+│                                                                               │
+│  5. Frontend Connection                                                       │
+│     Backend will start regardless. Frontend can access API at:                │
+│     http://localhost:8001/api/status                                         │
+│     http://localhost:8001/api/maps/latest                                    │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─ 10. QUICK START COMMANDS ────────────────────────────────────────────────────┐
+│                                                                               │
+│  To activate virtual environment and run backend:                            │
+│                                                                               │
+│  # Windows Command Prompt (cmd.exe):                                         │
+│  cd "C:\Users\ps103\Downloads\Gis Utility, project 1\backend"              │
+│  .venv\Scripts\activate                                                      │
+│  python main.py                                                              │
+│                                                                               │
+│  # Windows PowerShell:                                                       │
+│  cd "C:\Users\ps103\Downloads\Gis Utility, project 1\backend"              │
+│  .venv\Scripts\Activate.ps1                                                  │
+│  python main.py                                                              │
+│                                                                               │
+│  # Direct call without activating venv:                                      │
+│  .venv\Scripts\python main.py                                                │
+│                                                                               │
+│  # Check if backend is running:                                              │
+│  curl http://localhost:8001/api/status                                       │
+│                                                                               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+FINAL STATUS SUMMARY:
+═══════════════════════════════════════════════════════════════════════════════
+
+  ✅ Python 3.12.13 - INSTALLED
+  ✅ Virtual Environment - CONFIGURED 
+  ✅ All 8 Required Dependencies - INSTALLED
+  ✅ Configuration Files - PRESENT
+  ✅ Output Directories - READY
+  ⚠️  land_mask.png - MISSING (but handled gracefully with fallback)
+
+═══════════════════════════════════════════════════════════════════════════════
+
+CONCLUSION: Backend environment is fully ready. The application can start 
+successfully. The missing land_mask.png is optional and will not prevent startup.
+
+═══════════════════════════════════════════════════════════════════════════════

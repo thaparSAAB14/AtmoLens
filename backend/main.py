@@ -5,14 +5,13 @@ REST API for serving processed weather maps, archive, and system status.
 Integrates the scheduler for fully automated operation.
 """
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
-from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 import config
 import fetcher
@@ -41,7 +40,6 @@ async def lifespan(app: FastAPI):
 
     # Run an initial fetch in the background on startup
     logger.info("Scheduling initial fetch cycle...")
-    import asyncio
     asyncio.create_task(scheduler.fetch_and_process())
 
     yield
