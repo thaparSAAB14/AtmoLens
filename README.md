@@ -22,7 +22,7 @@
 ## 🎭 The Showcase: Scrapbook Narration
 *Below is a high-fidelity preview of the 'Notebook' aesthetic in action.*
 
-![AtmoLens Interactive Showcase](frontend/public/assets/docs/screenshots/preview.webp)
+![AtmoLens Interactive Showcase](frontend/public/assets/docs/screenshots/preview-static.png)
 
 </div>
 
@@ -33,8 +33,9 @@
 ## 📊 Repository Pulse
 *Real-time metrics of the AtmoLens ecosystem.*
 
-![GitHub Stats](https://github-readme-stats.vercel.app/api?username=thaparSAAB14&show_icons=true&theme=obsidian&hide_border=true&bg_color=121213&text_color=e4e4e7&title_color=00b4b4&icon_color=00b4b4)
-![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username=thaparSAAB14&layout=compact&theme=obsidian&hide_border=true&bg_color=121213&text_color=e4e4e7&title_color=00b4b4&icon_color=00b4b4)
+[![GitHub Stars](https://img.shields.io/github/stars/thaparSAAB14/AtmoLens?style=for-the-badge&color=00b4b4&labelColor=121213)](https://github.com/thaparSAAB14/AtmoLens/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/thaparSAAB14/AtmoLens?style=for-the-badge&color=00b4b4&labelColor=121213)](https://github.com/thaparSAAB14/AtmoLens/network/members)
+[![GitHub Issues](https://img.shields.io/github/issues/thaparSAAB14/AtmoLens?style=for-the-badge&color=00b4b4&labelColor=121213)](https://github.com/thaparSAAB14/AtmoLens/issues)
 
 </div>
 
