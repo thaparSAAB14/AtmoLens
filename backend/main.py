@@ -39,9 +39,10 @@ async def lifespan(app: FastAPI):
     storage._ensure_dirs()
     scheduler.start_scheduler()
 
-    # Run an initial fetch on startup
-    logger.info("Running initial fetch cycle...")
-    await scheduler.fetch_and_process()
+    # Run an initial fetch in the background on startup
+    logger.info("Scheduling initial fetch cycle...")
+    import asyncio
+    asyncio.create_task(scheduler.fetch_and_process())
 
     yield
 
