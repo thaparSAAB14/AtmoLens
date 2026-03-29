@@ -1,74 +1,133 @@
-# AtmoLens
+<div align="center">
 
-**Automated ECCC Synoptic Map Enhancement System**
+![AtmoLens Banner](frontend/public/assets/docs/screenshots/banner.png)
 
-AtmoLens automatically fetches grayscale synoptic maps from Environment and Climate Change Canada (ECCC), transforms them into color-enhanced, easy-to-read weather maps, and publishes them on a real-time website with a rolling 7-day archive.
+# 🌌 ATMOLENS
+### **Advanced ECCC Synoptic Map Enhancement & Automation**
 
-## Features
+[![Vercel Deployment](https://img.shields.io/badge/Vercel-Deployment-black?style=for-the-badge&logo=vercel)](https://vercel.com)
+[![Next.js 15](https://img.shields.io/badge/Next.js-15-000000?style=for-the-badge&logo=nextdotjs)](https://nextjs.org)
+[![License: ECCC](https://img.shields.io/badge/License-ECCC-blue?style=for-the-badge)](https://eccc-msc.github.io/open-data/licence/readme_en/)
 
-- **Fully Automated** — Fetches and processes maps every 30 minutes, zero human intervention
-- **Dual-Source Data** — Static GIF scraping + MSC GeoMet WMS API fallback (future-proof)
-- **Smart Deduplication** — SHA-256 hash comparison prevents re-processing identical maps
-- **Color Enhancement** — Water → blue, Land → green/beige, meteorological features preserved
-- **7-Day Archive** — Automatic cleanup of old data
-- **Real-Time Dashboard** — Live status, map viewer with zoom, before/after comparison slider
+**AtmoLens** transforms static, grayscale Environment Canada synoptic charts into high-contrast, color-enhanced meteorological narrations — automatically, every 30 minutes.
 
-## Architecture
+[Explore the Docs](#-the-dna) • [Installation](#-getting-started) • [Architecture](#-the-pipeline)
 
+</div>
+
+---
+
+<div align="center">
+
+## 🎭 The Showcase: Scrapbook Narration
+*Below is a high-fidelity preview of the 'Notebook' aesthetic in action.*
+
+![AtmoLens Interactive Showcase](frontend/public/assets/docs/screenshots/preview.webp)
+
+</div>
+
+---
+
+<div align="center">
+
+## 📊 Repository Pulse
+*Real-time metrics of the AtmoLens ecosystem.*
+
+![GitHub Stats](https://github-readme-stats.vercel.app/api?username=thaparSAAB14&show_icons=true&theme=obsidian&hide_border=true&bg_color=121213&text_color=e4e4e7&title_color=00b4b4&icon_color=00b4b4)
+![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username=thaparSAAB14&layout=compact&theme=obsidian&hide_border=true&bg_color=121213&text_color=e4e4e7&title_color=00b4b4&icon_color=00b4b4)
+
+</div>
+
+---
+
+<div align="center">
+
+## 🎨 The DNA: "Bit Depth"
+AtmoLens is defined by its **Bit Depth** aesthetic — a fusion of tactile, analog "Scrapbook" journaling and deep, nocturnal "Atmospheric Obsidian" interfaces.
+
+### 🌓 The Two Realities
+
+| **Scrapbook Mode (Light)** | **Obsidian Mode (Dark)** |
+| :---: | :---: |
+| ![Light Mode](frontend/public/assets/docs/screenshots/about-light.png) | ![Dark Mode](frontend/public/assets/docs/screenshots/about-dark.png) |
+| *Antique White (#fdfbf0), Jagged Tape, Hardened Zinc-900.* | *Deep Obsidian (#121213), Cyan Glow, Hardened Zinc-200.* |
+
+</div>
+
+---
+
+<div align="center">
+
+## ⚙️ The Pipeline
+How AtmoLens bridges the gap between raw data and visual clarity.
+
+```mermaid
+graph LR
+    A[ECCC Data Server] -->|Raw Grayscale| B(Normalization Engine)
+    B --> C{Bit Depth Processor}
+    C -->|Light Mode| D[Tactile Journal]
+    C -->|Dark Mode| E[Obsidian Dashboard]
+    D & E --> F[Live Deployment]
 ```
-┌─────────────┐    ┌──────────────────┐    ┌─────────────────┐    ┌──────────┐
-│  Scheduler   │───▶│  Data Fetcher    │───▶│  Image Processor │───▶│  Storage  │
-│  (APScheduler)│    │  (Static + WMS)  │    │  (OpenCV)        │    │  Manager  │
-└─────────────┘    └──────────────────┘    └─────────────────┘    └────┬─────┘
-                                                                       │
-                   ┌──────────────────┐    ┌─────────────────┐         │
-                   │  Next.js Frontend │◀───│  FastAPI Server  │◀───────┘
-                   └──────────────────┘    └─────────────────┘
-```
 
-## Tech Stack
+</div>
 
-| Layer | Technology |
-|-------|-----------|
-| Backend | Python, FastAPI, OpenCV, NumPy, APScheduler |
-| Frontend | Next.js 16, TypeScript, Tailwind CSS v4, Three.js |
-| Data Source | Environment Canada (weather.gc.ca), MSC GeoMet WMS |
+---
 
-## Quick Start
+<div align="center">
 
-### Backend
-```bash
-cd backend
-uv venv .venv --python 3.12
-uv pip install -r requirements.txt
-.venv/Scripts/activate    # Windows
-python main.py            # Runs on http://localhost:8000
-```
+## ✨ Key Features
+*Curated for meteorological clarity and high-octane performance.*
 
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev               # Runs on http://localhost:3000
-```
+| Feature | Description |
+| :--- | :--- |
+| **🖌️ Automated Normalization** | Real-time OpenCV-driven extraction of meteorological layers. |
+| **📔 Storytelling UI** | A unique "Notebook" narrative with skeuomorphic binding and realistic depth. |
+| **⚡ Obsidian Performance** | Optimized for ultra-low latency weather data retrieval. |
+| **🕵️ Data Guardian** | Built-in QA/QC dashboard for metadata verification. |
 
-The frontend auto-proxies `/api/*` to the backend via Next.js rewrites.
+</div>
 
-## API Endpoints
+---
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/status` | System health + scheduler info |
-| GET | `/api/maps/latest` | Latest processed map per type |
-| GET | `/api/maps/archive` | Full 7-day archive |
-| GET | `/api/maps/image/{type}/{file}` | Serve actual image |
-| POST | `/api/maps/fetch` | Manual fetch trigger |
+<div align="center">
 
-## Map Types
+## 🛠️ Tech Stack
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-black?style=for-the-badge&logo=threedotjs&logoColor=white)
 
-- **Surface Analysis** — 00Z, 06Z, 12Z, 18Z
-- **Upper Air** — 250 hPa, 500 hPa, 700 hPa, 850 hPa
+</div>
 
-## License
+---
 
-MIT
+## 🚀 Getting Started
+
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/thaparSAAB14/AtmoLens.git
+   ```
+2. Navigate to the frontend:
+   ```bash
+   cd frontend
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+### Production Monitoring
+Equipped with **Vercel Analytics** and **Speed Insights** for real-time performance tracking and deployment health.
+
+---
+
+<div align="center">
+Built with 🖤 for the meteorological community.
+</div>
