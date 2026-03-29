@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { getStatus, type SystemStatus } from "@/lib/api";
 import { timeAgo } from "@/lib/utils";
-import { Activity, Clock, Database, Zap } from "lucide-react";
+import { Activity, Clock, Database, Zap, RefreshCw } from "lucide-react";
 
 export function StatusBar() {
   const [status, setStatus] = useState<SystemStatus | null>(null);
@@ -26,18 +26,18 @@ export function StatusBar() {
 
   if (error) {
     return (
-      <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/20">
+      <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10">
         <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-        <span className="text-red-300 text-xs font-mono">BACKEND OFFLINE</span>
+        <span className="text-red-400 text-xs font-label uppercase">Backend Offline</span>
       </div>
     );
   }
 
   if (!status) {
     return (
-      <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10">
-        <div className="w-2 h-2 rounded-full bg-white/20 animate-pulse" />
-        <span className="text-white/30 text-xs font-mono">CONNECTING...</span>
+      <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--surface-container)]">
+        <div className="w-2 h-2 rounded-full bg-[var(--text-muted)] animate-pulse" />
+        <span className="text-[var(--text-muted)] text-xs font-label uppercase">Connecting...</span>
       </div>
     );
   }
@@ -46,7 +46,7 @@ export function StatusBar() {
   const isRunning = sched.running;
 
   return (
-    <div className="flex flex-wrap items-center gap-4 px-4 py-2.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
+    <div className="flex flex-wrap items-center gap-4 px-4 py-2.5 rounded-xl bg-[var(--surface-container)] backdrop-blur-sm">
       {/* Status indicator */}
       <div className="flex items-center gap-2">
         <div
@@ -54,14 +54,14 @@ export function StatusBar() {
             isRunning ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
           }`}
         />
-        <span className="text-white/60 text-xs font-mono">
-          {isRunning ? "LIVE" : "PAUSED"}
+        <span className="text-[var(--text-secondary)] text-xs font-label uppercase">
+          {isRunning ? "Live" : "Paused"}
         </span>
       </div>
 
       {/* Last fetch */}
       {sched.last_fetch_time && (
-        <div className="flex items-center gap-1.5 text-white/40 text-xs">
+        <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-xs">
           <Clock size={12} />
           <span>Last: {timeAgo(sched.last_fetch_time)}</span>
         </div>
@@ -69,27 +69,28 @@ export function StatusBar() {
 
       {/* Next run */}
       {sched.next_scheduled_run && (
-        <div className="flex items-center gap-1.5 text-white/40 text-xs">
+        <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-xs">
           <Zap size={12} />
           <span>Next: {timeAgo(sched.next_scheduled_run)}</span>
         </div>
       )}
 
       {/* Total processed */}
-      <div className="flex items-center gap-1.5 text-white/40 text-xs">
+      <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-xs">
         <Activity size={12} />
         <span>{sched.maps_processed_total} processed</span>
       </div>
 
       {/* Archive count */}
-      <div className="flex items-center gap-1.5 text-white/40 text-xs">
+      <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-xs">
         <Database size={12} />
         <span>{status.archive_count} in archive</span>
       </div>
 
       {/* Interval */}
-      <div className="text-white/20 text-xs font-mono ml-auto hidden sm:block">
-        ↻ {sched.fetch_interval_minutes}min
+      <div className="text-[var(--text-muted)] text-xs font-label ml-auto hidden sm:flex items-center gap-1">
+        <RefreshCw size={10} />
+        {sched.fetch_interval_minutes}min
       </div>
     </div>
   );

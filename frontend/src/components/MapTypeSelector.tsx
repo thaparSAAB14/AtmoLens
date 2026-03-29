@@ -13,7 +13,7 @@ export function MapTypeSelector({ selected, onChange }: MapTypeSelectorProps) {
     <div className="space-y-4">
       {Object.entries(MAP_TYPE_GROUPS).map(([group, types]) => (
         <div key={group}>
-          <p className="text-white/30 text-xs font-mono uppercase tracking-widest mb-2 px-1">
+          <p className="text-[var(--text-muted)] text-xs font-label uppercase tracking-widest mb-2 px-1">
             {group}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -23,10 +23,9 @@ export function MapTypeSelector({ selected, onChange }: MapTypeSelectorProps) {
                 onClick={() => onChange(type)}
                 className={cn(
                   "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300",
-                  "border backdrop-blur-sm",
                   selected === type
-                    ? "bg-cyan-500/20 border-cyan-400/40 text-cyan-300 shadow-lg shadow-cyan-500/10"
-                    : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70 hover:border-white/20"
+                    ? "bg-[var(--accent-dim)] text-[var(--accent)]"
+                    : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:bg-[var(--surface-container-high)] hover:text-[var(--text-secondary)]"
                 )}
               >
                 {MAP_TYPE_LABELS[type]?.replace("Surface Analysis — ", "").replace("Upper Air — ", "") || type}

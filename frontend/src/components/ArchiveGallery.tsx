@@ -39,10 +39,27 @@ export function ArchiveGallery() {
   // Get unique map types for filter
   const mapTypes = [...new Set(archive.map((e) => e.map_type))];
 
+  const handleDownload = async (imageUrl: string, filename: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(imageUrl, "_blank");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-8 h-8 border-2 border-cyan-400/30 border-t-cyan-400 rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[var(--accent)]/30 border-t-[var(--accent)] rounded-full animate-spin" />
       </div>
     );
   }
@@ -50,9 +67,9 @@ export function ArchiveGallery() {
   if (archive.length === 0) {
     return (
       <div className="text-center py-16">
-        <Calendar className="mx-auto text-white/20 mb-4" size={48} />
-        <p className="text-white/40">No archived maps yet</p>
-        <p className="text-white/20 text-sm mt-1">
+        <Calendar className="mx-auto text-[var(--text-muted)] mb-4" size={48} />
+        <p className="text-[var(--text-secondary)]">No archived maps yet</p>
+        <p className="text-[var(--text-muted)] text-sm mt-1">
           Maps will appear here after the first fetch cycle
         </p>
       </div>
@@ -67,8 +84,8 @@ export function ArchiveGallery() {
           onClick={() => setFilter("all")}
           className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
             filter === "all"
-              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/30"
-              : "bg-white/5 text-white/40 border border-white/10 hover:text-white/60"
+              ? "bg-[var(--accent-dim)] text-[var(--accent)]"
+              : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
           }`}
         >
           All Types
@@ -79,11 +96,11 @@ export function ArchiveGallery() {
             onClick={() => setFilter(type)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               filter === type
-                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-400/30"
-                : "bg-white/5 text-white/40 border border-white/10 hover:text-white/60"
+                ? "bg-[var(--accent-dim)] text-[var(--accent)]"
+                : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
             }`}
           >
-            {MAP_TYPE_LABELS[type]?.split(" — ")[0] || type}
+            {MAP_TYPE_LABELS[type] || type}
           </button>
         ))}
       </div>
@@ -91,8 +108,8 @@ export function ArchiveGallery() {
       {/* Grouped by date */}
       {dates.map((date) => (
         <div key={date}>
-          <h4 className="text-white/60 text-sm font-mono mb-3 flex items-center gap-2">
-            <Calendar size={14} className="text-white/30" />
+          <h4 className="text-[var(--text-secondary)] text-sm font-label mb-3 flex items-center gap-2">
+            <Calendar size={14} className="text-[var(--text-muted)]" />
             {new Date(date + "T00:00:00Z").toLocaleDateString("en-CA", {
               weekday: "long",
               year: "numeric",
@@ -100,16 +117,16 @@ export function ArchiveGallery() {
               day: "numeric",
               timeZone: "UTC",
             })}
-            <span className="text-white/20">({grouped[date].length})</span>
+            <span className="text-[var(--text-muted)]">({grouped[date].length})</span>
           </h4>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {grouped[date].map((entry) => (
               <div
                 key={`${entry.map_type}-${entry.filename}`}
-                className="group relative rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-white/20 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/5"
+                className="group relative rounded-xl overflow-hidden bg-[var(--surface-container)] hover:bg-[var(--surface-container-high)] transition-all duration-300 hover:scale-[1.02]"
               >
-                <div className="aspect-[4/3] overflow-hidden bg-slate-900">
+                <div className="aspect-[4/3] overflow-hidden bg-[var(--surface-variant)]">
                   <img
                     src={getImageUrl(entry.image_url)}
                     alt={entry.map_type}
@@ -119,22 +136,21 @@ export function ArchiveGallery() {
                 </div>
 
                 <div className="p-3 space-y-1">
-                  <p className="text-white/80 text-sm font-medium truncate">
+                  <p className="text-[var(--text-primary)] text-sm font-display font-medium truncate">
                     {MAP_TYPE_LABELS[entry.map_type] || entry.map_type}
                   </p>
-                  <p className="text-white/30 text-xs font-mono">
+                  <p className="text-[var(--text-muted)] text-xs font-label">
                     {entry.timestamp ? formatTimestamp(entry.timestamp) : ""}
                   </p>
                 </div>
 
                 {/* Download overlay */}
-                <a
-                  href={getImageUrl(entry.image_url)}
-                  download={entry.filename}
-                  className="absolute top-2 right-2 p-2 rounded-lg bg-black/50 text-white/50 opacity-0 group-hover:opacity-100 hover:text-white transition-all"
+                <button
+                  onClick={() => handleDownload(getImageUrl(entry.image_url), entry.filename)}
+                  className="absolute top-2 right-2 p-2 rounded-lg bg-[var(--surface)]/50 backdrop-blur-sm text-[var(--text-muted)] opacity-0 group-hover:opacity-100 hover:text-[var(--text-primary)] transition-all cursor-pointer"
                 >
                   <Download size={14} />
-                </a>
+                </button>
               </div>
             ))}
           </div>

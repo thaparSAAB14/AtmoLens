@@ -1,24 +1,35 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans, Space_Grotesk, Caveat } from "next/font/google";
 import "./globals.css";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import StyledComponentsRegistry from "@/lib/registry";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
 });
 
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+});
+
+const grotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-grotesk",
+});
+
+const handwriting = Caveat({
+  subsets: ["latin"],
+  variable: "--font-handwriting",
+});
+
 export const metadata: Metadata = {
-  title: "Weather Map Processor — ECCC Synoptic Map Enhancement",
+  title: "AtmoLens — Automated ECCC Synoptic Map Enhancement",
   description:
-    "Automated system that transforms grayscale ECCC synoptic maps into color-enhanced, easy-to-read weather maps with real-time updates and a 7-day archive.",
-  keywords: [
-    "weather maps",
-    "ECCC",
-    "synoptic analysis",
-    "Environment Canada",
-    "meteorology",
-    "GIS",
-  ],
+    "Grayscale Environment Canada analysis maps transformed into color-enhanced, easy-to-read weather maps — automatically, every 30 minutes.",
 };
 
 export default function RootLayout({
@@ -27,9 +38,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans antialiased`}>
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${inter.variable} ${jakarta.variable} ${grotesk.variable} ${handwriting.variable} antialiased`}
+      >
+        <StyledComponentsRegistry>
+          <ThemeProvider>
+            <Navbar />
+            <main className="min-h-screen">{children}</main>
+            <Footer />
+          </ThemeProvider>
+        </StyledComponentsRegistry>
       </body>
     </html>
   );
