@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AtmoLens Launcher</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 40px;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 18px 40px;
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            text-decoration: none;
+            margin: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .button.secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+        }
+        
+        .button.secondary:hover {
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
+        }
+        
+        .info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: left;
+        }
+        
+        .info h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .info ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .info li {
+            padding: 8px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .info li::before {
+            content: "✅ ";
+            margin-right: 8px;
+        }
+        
+        .links {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .links a {
+            display: inline-block;
+            margin: 5px 10px;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .links a:hover {
+            text-decoration: underline;
+        }
+        
+        .status {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: #fff3cd;
+            color: #856404;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .emoji {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="emoji">🌤️</div>
+        <h1>AtmoLens</h1>
+        <p class="subtitle">Automated Weather Map Enhancement</p>
+        
+        <div>
+            <a href="http://localhost:3000" class="button" target="_blank">
+                🚀 Open Dashboard
+            </a>
+            <a href="http://localhost:8001/api/status" class="button secondary" target="_blank">
+                📊 Backend Status
+            </a>
+        </div>
+        
+        <div class="info">
+            <h3>🎯 Quick Links:</h3>
+            <ul>
+                <li><a href="http://localhost:3000" target="_blank">Dashboard</a> - Main interface</li>
+                <li><a href="http://localhost:3000/maps" target="_blank">Live Maps</a> - Current weather maps</li>
+                <li><a href="http://localhost:3000/archive" target="_blank">Archive</a> - 7-day history</li>
+                <li><a href="http://localhost:8001/api/maps/fetch" target="_blank">Trigger Fetch</a> - Force update now</li>
+            </ul>
+        </div>
+        
+        <div class="status">
+            ⚠️ Make sure you've run "🚀 START ATMOLENS.bat" first!
+        </div>
+        
+        <div class="links">
+            <strong>Need Help?</strong><br>
+            <a href="./HOW TO START - READ THIS.md">How to Start Guide</a> •
+            <a href="./DEV_GUIDE.md">Development Guide</a> •
+            <a href="./README.md">About AtmoLens</a>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-check if servers are running
+        fetch('http://localhost:8001/api/status')
+            .then(response => {
+                if (response.ok) {
+                    document.querySelector('.status').innerHTML = '✅ Backend is running!';
+                    document.querySelector('.status').style.background = '#d4edda';
+                    document.querySelector('.status').style.color = '#155724';
+                }
+            })
+            .catch(() => {
+                document.querySelector('.status').innerHTML = '⚠️ Backend not running - Run "🚀 START ATMOLENS.bat" first!';
+            });
+    </script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║              🌤️  ATMOLENS QUICK REFERENCE  🌤️                ║
+║                                                              ║
+║                   NO CODING REQUIRED!                        ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+
+┌──────────────────────────────────────────────────────────────┐
+│  🚀 TO START                                                 │
+└──────────────────────────────────────────────────────────────┘
+
+   Double-click: 🚀 START ATMOLENS.bat
+
+   ✅ Everything happens automatically
+   ✅ Browser opens to http://localhost:3000
+   ✅ Maps fetch every 30 minutes
+
+
+┌──────────────────────────────────────────────────────────────┐
+│  🛑 TO STOP                                                  │
+└──────────────────────────────────────────────────────────────┘
+
+   Double-click: 🛑 STOP ATMOLENS.bat
+
+   ✅ Kills all servers instantly
+
+
+┌──────────────────────────────────────────────────────────────┐
+│  📍 QUICK LINKS (Bookmark These!)                           │
+└──────────────────────────────────────────────────────────────┘
+
+   Dashboard:      http://localhost:3000
+   Live Maps:      http://localhost:3000/maps
+   Archive:        http://localhost:3000/archive
+   Force Update:   http://localhost:8001/api/maps/fetch
+   Backend Status: http://localhost:8001/api/status
+
+
+┌──────────────────────────────────────────────────────────────┐
+│  ✨ FULLY AUTOMATIC FEATURES                                │
+└──────────────────────────────────────────────────────────────┘
+
+   🔄 Auto-fetch:     Every 30 minutes
+   🎨 Auto-process:   Color enhancement applied instantly
+   💾 Auto-save:      All maps saved to archive
+   🗑️ Auto-cleanup:   Old maps deleted after 7 days
+   📊 Auto-recovery:  Restarts on errors
+
+
+┌──────────────────────────────────────────────────────────────┐
+│  🎯 WHAT YOU GET                                            │
+└──────────────────────────────────────────────────────────────┘
+
+   📊 Live Status Bar     - Green dot = Everything working
+   🗺️ 8 Map Types        - Surface (00Z-18Z) + Upper Air
+   🔍 Zoom & Download     - Full control over maps
+   🎨 Color Toggle        - Original vs Enhanced view
+   📦 7-Day Archive       - All processed maps saved
+   🌗 Dual Theme          - Scrapbook (light) / Obsidian (dark)
+
+
+┌──────────────────────────────────────────────────────────────┐
+│  ❓ NEED HELP?                                              │
+└──────────────────────────────────────────────────────────────┘
+
+   Read: ⭐ START HERE - SIMPLE GUIDE.md
+   
+   Or check:
+   - HOW TO START - READ THIS.md
+   - DEV_GUIDE.md
+   - READY_TO_RUN.md
+
+
+┌──────────────────────────────────────────────────────────────┐
+│  💡 PRO TIPS                                                │
+└──────────────────────────────────────────────────────────────┘
+
+   • First run takes 2-3 minutes (installing packages)
+   • After that, starts in 10-15 seconds
+   • Leave running overnight for best results
+   • Create desktop shortcut for easy access
+   • Force first fetch: http://localhost:8001/api/maps/fetch
+
+
+┌──────────────────────────────────────────────────────────────┐
+│  🔧 PREREQUISITES (One-Time Install)                        │
+└──────────────────────────────────────────────────────────────┘
+
+   1. Python 3.8+
+      Download: https://www.python.org/downloads/
+      ⚠️ Check "Add Python to PATH" during install!
+
+   2. Node.js (Latest LTS)
+      Download: https://nodejs.org/
+
+   That's it! The launcher does the rest.
+
+
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║         ✨ JUST DOUBLE-CLICK AND IT WORKS! ✨               ║
+║                                                              ║
+║                No coding. No configuration.                  ║
+║                   100% Automatic.                            ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+
+             Created with ❤️ for "vibe coding"

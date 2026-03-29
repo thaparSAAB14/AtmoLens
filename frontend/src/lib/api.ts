@@ -1,8 +1,15 @@
 /**
  * API client for the Weather Map Processor backend.
+ * Automatically uses environment variable for production or localhost for dev.
  */
 
+// Try to get API URL from environment, fallback to localhost
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+
+// Log API base in development
+if (process.env.NODE_ENV === 'development') {
+  console.log('🔌 API Base URL:', API_BASE);
+}
 
 export interface MapInfo {
   filename: string;

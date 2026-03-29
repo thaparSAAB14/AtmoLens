@@ -12,18 +12,22 @@ venv/
 env/
 
 # Backend data
-backend/maps/
+backend/maps/*
+!backend/maps/.gitkeep
 backend/assets/land_mask.png
 
 # Environment
 .env
 .env.local
+backend/.env
+frontend/.env.local
 
 # Node
 node_modules/
 .next/
 out/
 .turbo/
+frontend/.vercel/
 
 # IDE
 .vscode/
@@ -38,3 +42,9 @@ desktop.ini
 
 # Logs
 *.log
+
+# Keep deployment configs
+!backend/Dockerfile
+!backend/Procfile
+!backend/fly.toml
+!vercel.json

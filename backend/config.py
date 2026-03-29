@@ -25,7 +25,10 @@ ARCHIVE_DAYS = int(os.getenv("ARCHIVE_DAYS", "7"))
 # ── Server ─────────────────────────────────────────────────────────────────────
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8001"))
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+
+# CORS: Support multiple frontend origins (comma-separated)
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
+ALLOWED_ORIGINS = [origin.strip() for origin in FRONTEND_ORIGIN.split(",") if origin.strip()]
 
 # ── Image Processing ──────────────────────────────────────────────────────────
 FOREGROUND_THRESHOLD = int(os.getenv("FOREGROUND_THRESHOLD", "100"))
