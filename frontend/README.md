@@ -17,10 +17,33 @@
 
 ---
 
-## 🎨 The DNA: "Bit Depth"
-AtmoLens is defined by its **Bit Depth** aesthetic — a fusion of tactile, analog "Scrapbook" journaling and deep, nocturnal "Atmospheric Obsidian" interfaces.
+<div align="center">
+
+## 🎭 The Showcase: Scrapbook Narration
+*Below is a high-fidelity preview of the 'Notebook' aesthetic in action.*
+
+![AtmoLens Interactive Showcase](public/assets/docs/screenshots/preview.webp)
+
+</div>
+
+---
 
 <div align="center">
+
+## 📊 Repository Pulse
+*Real-time metrics of the AtmoLens ecosystem.*
+
+![GitHub Stats](https://github-readme-stats.vercel.app/api?username=thaparSAAB14&show_icons=true&theme=obsidian&hide_border=true&bg_color=121213&text_color=e4e4e7&title_color=00b4b4&icon_color=00b4b4)
+![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username=thaparSAAB14&layout=compact&theme=obsidian&hide_border=true&bg_color=121213&text_color=e4e4e7&title_color=00b4b4&icon_color=00b4b4)
+
+</div>
+
+---
+
+<div align="center">
+
+## 🎨 The DNA: "Bit Depth"
+AtmoLens is defined by its **Bit Depth** aesthetic — a fusion of tactile, analog "Scrapbook" journaling and deep, nocturnal "Atmospheric Obsidian" interfaces.
 
 ### 🌓 The Two Realities
 
@@ -32,6 +55,8 @@ AtmoLens is defined by its **Bit Depth** aesthetic — a fusion of tactile, anal
 </div>
 
 ---
+
+<div align="center">
 
 ## ⚙️ The Pipeline
 How AtmoLens bridges the gap between raw data and visual clarity.
@@ -45,19 +70,29 @@ graph LR
     D & E --> F[Live Deployment]
 ```
 
----
-
-## ✨ Key Features
-- **🖌️ Automated Normalization**: Real-time OpenCV-driven extraction of meteorological layers.
-- **📔 Storytelling UI**: A unique "Notebook" narrative with skeuomorphic binding and realistic depth.
-- **⚡ Obsidian Performance**: Optimized for ultra-low latency weather data retrieval.
-- **🕵️ Data Guardian**: Built-in QA/QC dashboard for metadata verification.
+</div>
 
 ---
 
-## 🛠️ Tech Stack
 <div align="center">
 
+## ✨ Key Features
+*Curated for meteorological clarity and high-octane performance.*
+
+| Feature | Description |
+| :--- | :--- |
+| **🖌️ Automated Normalization** | Real-time OpenCV-driven extraction of meteorological layers. |
+| **📔 Storytelling UI** | A unique "Notebook" narrative with skeuomorphic binding and realistic depth. |
+| **⚡ Obsidian Performance** | Optimized for ultra-low latency weather data retrieval. |
+| **🕵️ Data Guardian** | Built-in QA/QC dashboard for metadata verification. |
+
+</div>
+
+---
+
+<div align="center">
+
+## 🛠️ Tech Stack
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white)
