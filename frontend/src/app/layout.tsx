@@ -32,6 +32,9 @@ export const metadata: Metadata = {
     "Grayscale Environment Canada analysis maps transformed into color-enhanced, easy-to-read weather maps — automatically, every 30 minutes.",
 };
 
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -49,6 +52,8 @@ export default function RootLayout({
             <Footer />
           </ThemeProvider>
         </StyledComponentsRegistry>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
