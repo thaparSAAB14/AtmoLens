@@ -1,14 +1,14 @@
 /**
  * API client for the Weather Map Processor backend.
- * Automatically uses environment variable for production or localhost for dev.
+ * Vercel deployment - API routes are in same domain
  */
 
-// Try to get API URL from environment, fallback to localhost
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
+// API is in same domain under /api
+const API_BASE = "/api";
 
 // Log API base in development
 if (process.env.NODE_ENV === 'development') {
-  console.log('🔌 API Base URL:', API_BASE);
+  console.log('🔌 API Base URL:', API_BASE, '(Same domain - Vercel)');
 }
 
 export interface MapInfo {

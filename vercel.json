@@ -1,13 +1,27 @@
 {
   "version": 2,
-  "public": false,
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/.next",
   "framework": "nextjs",
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/frontend/$1"
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ],
+  "functions": {
+    "api/**/*.py": {
+      "runtime": "python3.9"
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/fetch-maps",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 0 * * *"
     }
   ]
 }
