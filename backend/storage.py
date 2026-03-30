@@ -1,199 +1,182 @@
 """
-Storage Manager
-────────────────
-Handles saving/loading processed maps, hash-based deduplication,
-and automatic cleanup of files older than ARCHIVE_DAYS.
+☁️ Cloud Storage Manager (Vercel Native)
+─────────────────────────────────────
+Handles saving/loading processed maps to Vercel Blob and persistent 
+metadata storage in Vercel Postgres.
 """
 
 import hashlib
-import json
 import logging
 import os
-import time
+import io
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, List
 
-import config
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from vercel_blob import put
+
+import backend.config as config
 
 logger = logging.getLogger(__name__)
 
+# ── Database Connection ────────────────────────────────────────────────────────
 
-def _ensure_dirs():
-    """Create output directory structure if it doesn't exist."""
-    config.MAP_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    config.ASSETS_DIR.mkdir(parents=True, exist_ok=True)
-    for map_type in config.STATIC_MAP_SOURCES:
-        (config.MAP_OUTPUT_DIR / map_type).mkdir(parents=True, exist_ok=True)
+def get_db_connection():
+    """Create a new Postgres connection and ensure the schema exists."""
+    try:
+        conn = psycopg2.connect(config.POSTGRES_URL, sslmode="require")
+        # Ensure schema on every connection attempts (low overhead with IF NOT EXISTS)
+        with conn.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS maps (
+                    id SERIAL PRIMARY KEY,
+                    map_type TEXT NOT NULL,
+                    filename TEXT NOT NULL,
+                    blob_url TEXT NOT NULL,
+                    original_blob_url TEXT,
+                    timestamp TIMESTAMPTZ NOT NULL,
+                    hash TEXT UNIQUE NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_maps_type_ts ON maps(map_type, timestamp DESC);
+            """)
+        conn.commit()
+        return conn
+    except Exception as e:
+        logger.error(f"Postgres Connection Error: {e}")
+        return None
 
+# ── Hash & Dedup ─────────────────────────────────────────────────────────────
 
 def compute_hash(data: bytes) -> str:
     """Compute SHA-256 hash of raw image bytes."""
     return hashlib.sha256(data).hexdigest()
 
-
-def load_hashes() -> dict:
-    """Load the hash store from disk."""
-    if config.HASH_STORE_PATH.exists():
-        try:
-            return json.loads(config.HASH_STORE_PATH.read_text())
-        except (json.JSONDecodeError, OSError):
-            logger.warning("Corrupt hash store, starting fresh")
-    return {}
-
-
-def save_hashes(hashes: dict):
-    """Persist hash store to disk."""
-    config.MAP_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    config.HASH_STORE_PATH.write_text(json.dumps(hashes, indent=2))
-
-
 def is_duplicate(map_type: str, data: bytes) -> bool:
-    """Check if this image has already been processed (same hash)."""
+    """Check if this image hash already exists in Postgres."""
     current_hash = compute_hash(data)
-    stored_hashes = load_hashes()
-    return stored_hashes.get(map_type) == current_hash
+    conn = get_db_connection()
+    if not conn:
+        return False
+    
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM maps WHERE map_type = %s AND hash = %s", (map_type, current_hash))
+            return cur.fetchone() is not None
+    finally:
+        conn.close()
 
-
-def update_hash(map_type: str, data: bytes):
-    """Store the hash for the latest processed image of this type."""
-    hashes = load_hashes()
-    hashes[map_type] = compute_hash(data)
-    save_hashes(hashes)
-
+# ── Image Saving (Vercel Blob) ───────────────────────────────────────────────
 
 def build_filename(map_type: str, timestamp: Optional[datetime] = None) -> str:
-    """Generate a timestamped filename: map_YYYYMMDD_HHZ.png"""
+    """Generate a cloud-safe filename."""
     ts = timestamp or datetime.now(timezone.utc)
-    return f"map_{ts.strftime('%Y%m%d_%H')}Z.png"
+    return f"atmolens/{map_type}/map_{ts.strftime('%Y%m%d_%H')}Z.png"
 
-
-def save_image(
+async def save_image(
     map_type: str,
     processed_bytes: bytes,
     original_bytes: bytes,
     timestamp: Optional[datetime] = None,
 ):
-    """Save both processed and original images, update the latest manifest."""
-    _ensure_dirs()
+    """Save processed and original images to Vercel Blob and metadata to Postgres."""
     ts = timestamp or datetime.now(timezone.utc)
-    filename = build_filename(map_type, ts)
-
-    type_dir = config.MAP_OUTPUT_DIR / map_type
-    type_dir.mkdir(parents=True, exist_ok=True)
-
-    # Save processed
-    processed_path = type_dir / filename
-    processed_path.write_bytes(processed_bytes)
-
-    # Save original
-    original_path = type_dir / f"original_{filename}"
-    original_path.write_bytes(original_bytes)
-
-    logger.info(f"Saved {map_type}/{filename}")
-
-    # Update latest manifest
-    _update_latest(map_type, filename, ts)
-
-    return filename
-
-
-def _update_latest(map_type: str, filename: str, timestamp: datetime):
-    """Update the latest.json manifest."""
-    manifest = load_latest_manifest()
-    manifest[map_type] = {
-        "filename": filename,
-        "original_filename": f"original_{filename}",
-        "timestamp": timestamp.isoformat(),
-        "map_type": map_type,
-    }
-    config.LATEST_MANIFEST_PATH.write_text(json.dumps(manifest, indent=2))
-
-
-def load_latest_manifest() -> dict:
-    """Load the latest.json manifest."""
-    if config.LATEST_MANIFEST_PATH.exists():
-        try:
-            return json.loads(config.LATEST_MANIFEST_PATH.read_text())
-        except (json.JSONDecodeError, OSError):
-            logger.warning("Corrupt manifest, starting fresh")
-    return {}
-
-
-def get_archive(map_type: Optional[str] = None) -> list[dict]:
-    """
-    Return archive entries (last ARCHIVE_DAYS days).
-    If map_type is given, filter to that type only.
-    """
-    entries = []
+    base_name = build_filename(map_type, ts)
     
-    if not config.MAP_OUTPUT_DIR.exists():
-        return entries
+    try:
+        # 1. Upload Processed to Vercel Blob
+        processed_blob = put(base_name, processed_bytes, {"access": "public"})
+        processed_url = processed_blob.get("url")
+        
+        # 2. Upload Original to Vercel Blob
+        original_blob = put(f"original_{base_name}", original_bytes, {"access": "public"})
+        original_url = original_blob.get("url")
+        
+        # 3. Store Metadata in Postgres
+        _store_metadata(map_type, base_name, processed_url, original_url, ts, compute_hash(original_bytes))
+        
+        logger.info(f"✅ Successfully stored {map_type} to Vercel Cloud")
+        return processed_url
+        
+    except Exception as e:
+        logger.error(f"❌ Failed to save image to cloud: {e}")
+        return None
+
+def _store_metadata(map_type: str, filename: str, blob_url: str, original_url: str, ts: datetime, img_hash: str):
+    """Insert map record into Vercel Postgres."""
+    conn = get_db_connection()
+    if not conn:
+        return
     
-    search_dirs = (
-        [config.MAP_OUTPUT_DIR / map_type]
-        if map_type
-        else [
-            d
-            for d in config.MAP_OUTPUT_DIR.iterdir()
-            if d.is_dir() and d.name != "__pycache__"
-        ]
-    )
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO maps (map_type, filename, blob_url, original_blob_url, timestamp, hash)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                ON CONFLICT (hash) DO UPDATE SET blob_url = EXCLUDED.blob_url;
+                """,
+                (map_type, filename, blob_url, original_url, ts, img_hash)
+            )
+        conn.commit()
+    finally:
+        conn.close()
 
-    for type_dir in search_dirs:
-        if not type_dir.exists():
-            continue
-        for f in sorted(type_dir.glob("map_*.png"), reverse=True):
-            # Parse timestamp from filename: map_YYYYMMDD_HHZ.png
-            try:
-                parts = f.stem.replace("map_", "").replace("Z", "")
-                dt = datetime.strptime(parts, "%Y%m%d_%H").replace(tzinfo=timezone.utc)
-                cutoff = datetime.now(timezone.utc) - timedelta(days=config.ARCHIVE_DAYS)
-                if dt >= cutoff:
-                    original = type_dir / f"original_{f.name}"
-                    entries.append(
-                        {
-                            "map_type": type_dir.name,
-                            "filename": f.name,
-                            "original_filename": f"original_{f.name}"
-                            if original.exists()
-                            else None,
-                            "timestamp": dt.isoformat(),
-                            "path": str(f.relative_to(config.MAP_OUTPUT_DIR)),
-                        }
-                    )
-            except ValueError:
-                continue
+# ── Retrieval Logic ──────────────────────────────────────────────────────────
 
-    entries.sort(key=lambda e: e["timestamp"], reverse=True)
-    return entries
+def get_latest_manifest() -> Dict:
+    """Fetch the latest processed map for each type from Postgres."""
+    conn = get_db_connection()
+    if not conn:
+        return {}
+    
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                """
+                SELECT DISTINCT ON (map_type) * 
+                FROM maps 
+                ORDER BY map_type, timestamp DESC;
+                """
+            )
+            rows = cur.fetchall()
+            return {row["map_type"]: dict(row) for row in rows}
+    finally:
+        conn.close()
 
+def get_archive(map_type: Optional[str] = None) -> List[Dict]:
+    """Fetch archive entries from Postgres."""
+    conn = get_db_connection()
+    if not conn:
+        return []
+    
+    try:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            query = "SELECT * FROM maps WHERE timestamp >= NOW() - INTERVAL '7 days'"
+            params = []
+            if map_type:
+                query += " AND map_type = %s"
+                params.append(map_type)
+            query += " ORDER BY timestamp DESC"
+            
+            cur.execute(query, params)
+            return [dict(row) for row in cur.fetchall()]
+    finally:
+        conn.close()
+
+# ── Cleanup ───────────────────────────────────────────────────────────────
 
 def cleanup_old_maps():
-    """Delete processed and original images older than ARCHIVE_DAYS."""
-    if not config.MAP_OUTPUT_DIR.exists():
-        logger.info("Cleanup: MAP_OUTPUT_DIR doesn't exist yet, skipping")
+    """Cleanup old metadata from Postgres (Note: Blob deletion requires dedicated API call)."""
+    conn = get_db_connection()
+    if not conn:
         return 0
     
-    cutoff = datetime.now(timezone.utc) - timedelta(days=config.ARCHIVE_DAYS)
-    removed = 0
-
-    for type_dir in config.MAP_OUTPUT_DIR.iterdir():
-        if not type_dir.is_dir() or type_dir.name == "__pycache__":
-            continue
-        for f in type_dir.glob("*.png"):
-            try:
-                name = f.stem.replace("map_", "").replace("original_map_", "").replace("Z", "")
-                dt = datetime.strptime(name, "%Y%m%d_%H").replace(tzinfo=timezone.utc)
-                if dt < cutoff:
-                    f.unlink()
-                    removed += 1
-            except (ValueError, OSError):
-                continue
-
-    logger.info(f"Cleanup: removed {removed} old files")
-    return removed
-
-
-# Ensure dirs exist on import
-_ensure_dirs()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM maps WHERE timestamp < NOW() - INTERVAL '7 days'")
+            deleted_count = cur.rowcount
+        conn.commit()
+        return deleted_count
+    finally:
+        conn.close()
