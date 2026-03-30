@@ -97,7 +97,7 @@ export function MapViewer({ selectedType }: MapViewerProps) {
         <div className="text-center px-6">
           <p className="text-red-400 font-medium">{error}</p>
           <p className="text-[var(--text-muted)] text-sm mt-2">
-            Start the backend: <code className="bg-[var(--surface-variant)] px-2 py-1 rounded">cd backend && python main.py</code>
+            Start the backend: <code className="bg-[var(--surface-variant)] px-2 py-1 rounded">vercel dev</code>
           </p>
         </div>
       </div>

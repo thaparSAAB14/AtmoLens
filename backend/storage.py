@@ -23,9 +23,16 @@ logger = logging.getLogger(__name__)
 # ── Database Connection ────────────────────────────────────────────────────────
 
 def get_db_connection():
-    """Create a new Postgres connection and ensure the schema exists."""
+    """Create a new Postgres connection and ensure the schema exists. Sanitizes Neon DB connection strings."""
     try:
-        conn = psycopg2.connect(config.POSTGRES_URL, sslmode="require")
+        # Vercel AWS Lambda environments often lack libpq channel_binding support which Neon injects
+        raw_url = config.POSTGRES_URL
+        if raw_url and 'channel_binding=' in raw_url:
+            raw_url = raw_url.split('&channel_binding=')[0].split('?channel_binding=')[0]
+            if '?' not in raw_url and 'sslmode' not in raw_url:
+                raw_url += '?sslmode=require'
+
+        conn = psycopg2.connect(raw_url, sslmode="require")
         # Ensure schema on every connection attempts (low overhead with IF NOT EXISTS)
         with conn.cursor() as cur:
             cur.execute("""

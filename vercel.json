@@ -6,14 +6,10 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "api/index.py"
+      "destination": "/api/index"
     }
   ],
-  "functions": {
-    "api/**/*.py": {
-      "runtime": "vercel-python@1.0.3"
-    }
-  },
+
   "crons": [
     {
       "path": "/api/cron/fetch-maps",
