@@ -70,9 +70,23 @@ export function StatusBar() {
         <span>{status.archive_count} maps indexed</span>
       </div>
 
-      <div className="text-[var(--text-muted)] text-xs font-label ml-auto hidden sm:flex items-center gap-1">
-        <RefreshCw size={10} />
-        Vercel Cron Active
+      <div className="ml-auto hidden sm:flex items-center gap-2">
+        <button
+          onClick={async (e) => {
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="animate-pulse">Syncing...</span>`;
+            try {
+              await fetch('/api/cron/fetch-maps');
+              window.location.reload();
+            } catch {
+              btn.innerHTML = `Sync Failed`;
+            }
+          }}
+          className="text-xs font-label bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 px-3 py-1 rounded-md transition-colors flex items-center gap-1"
+        >
+          <RefreshCw size={10} /> Force Sync
+        </button>
       </div>
     </div>
   );
