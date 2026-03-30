@@ -9,7 +9,10 @@ export function getDb() {
   return neon(url);
 }
 
+let dbInitialized = false;
+
 export async function initDb() {
+  if (dbInitialized) return;
   const sql = getDb();
   await sql`
     CREATE TABLE IF NOT EXISTS maps (
@@ -32,9 +35,11 @@ export async function initDb() {
         created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `;
+  dbInitialized = true;
 }
 
 export async function getLatestManifest() {
+  await initDb();
   const sql = getDb();
   // Postgres DISTINCT ON to get the newest row per map_type
   const rows = await sql`
@@ -51,6 +56,7 @@ export async function getLatestManifest() {
 }
 
 export async function getArchive(mapType?: string) {
+  await initDb();
   const sql = getDb();
   if (mapType) {
     return await sql`
@@ -68,6 +74,7 @@ export async function getArchive(mapType?: string) {
 }
 
 export async function storeMapMetadata(mapType: string, filename: string, blobUrl: string, originalUrl: string, timestamp: Date, hash: string) {
+  await initDb();
   const sql = getDb();
   await sql`
     INSERT INTO maps (map_type, filename, blob_url, original_blob_url, timestamp, hash)
@@ -77,6 +84,7 @@ export async function storeMapMetadata(mapType: string, filename: string, blobUr
 }
 
 export async function cleanupOldMaps() {
+  await initDb();
   const sql = getDb();
   const res = await sql`
     DELETE FROM maps WHERE timestamp < NOW() - INTERVAL '7 days' RETURNING id;
@@ -87,11 +95,13 @@ export async function cleanupOldMaps() {
 // ── Meteorologist's Notebook ────────────────────────────────────────────────
 
 export async function saveNote(note: string) {
+  await initDb();
   const sql = getDb();
   await sql`INSERT INTO observer_notes (note) VALUES (${note})`;
 }
 
 export async function getNotes() {
+  await initDb();
   const sql = getDb();
   return await sql`SELECT * FROM observer_notes ORDER BY created_at DESC LIMIT 50`;
 }
