@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Allow images from the backend API
+  // Allow images for potential legacy or fallback links. Vercel Blob URLs handle their own hostnames.
   images: {
     remotePatterns: [
       {
@@ -10,16 +10,13 @@ const nextConfig: NextConfig = {
         port: "8000",
         pathname: "/api/maps/image/**",
       },
-    ],
-  },
-  // Proxy API requests to the Python backend during development
-  async rewrites() {
-    return [
+      // Note: Add Vercel Blob domain here if you prefer using next/image for blob served maps
       {
-        source: "/api/:path*",
-        destination: "http://localhost:8000/api/:path*",
-      },
-    ];
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+        pathname: "/**",
+      }
+    ],
   },
 };
 
