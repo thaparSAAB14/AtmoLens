@@ -4,7 +4,7 @@
  */
 
 // API is in same domain under /api
-const API_BASE = "/api";
+const API_BASE = "";
 
 // Log API connectivity state
 if (process.env.NODE_ENV === 'development') {

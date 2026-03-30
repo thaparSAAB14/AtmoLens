@@ -6,6 +6,7 @@ import { MapViewer } from "@/components/MapViewer";
 import { MapTypeSelector } from "@/components/MapTypeSelector";
 import { GisLayerSelector } from "@/components/GisLayerSelector";
 import { StatusBar } from "@/components/StatusBar";
+import { Notebook } from "@/components/Notebook";
 
 const WarpShaderBackground = dynamic(
   () =>
@@ -44,21 +45,19 @@ export default function MapsPage() {
       {/* ─── Maps Content ───────────────────────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
-          <aside className="lg:sticky lg:top-20 lg:self-start">
-            <div className="glass rounded-2xl p-5 space-y-4">
-              <h3 className="text-[var(--text-secondary)] font-label text-sm uppercase tracking-widest">
-                Map Type
+          <aside className="lg:sticky lg:top-20 lg:self-start space-y-6">
+            <div className="glass rounded-2xl p-5 space-y-4 glow-md">
+              <h3 className="text-[var(--text-secondary)] font-label text-sm uppercase tracking-widest flex items-center gap-2">
+                Map Controls
               </h3>
-              <MapTypeSelector
-                selected={selectedMapType}
-                onChange={setSelectedMapType}
-              />
+              <MapTypeSelector selected={selectedMapType} onChange={setSelectedMapType} />
+              
               <div className="border-t border-[var(--border)] pt-4 mt-4" />
-              <GisLayerSelector
-                selected={selectedLayers}
-                onChange={setSelectedLayers}
-              />
+              <GisLayerSelector selected={selectedLayers} onChange={setSelectedLayers} />
             </div>
+
+            {/* Next.js Sever Action Component */}
+            <Notebook />
           </aside>
 
           <main>
