@@ -36,9 +36,10 @@ export interface SchedulerStatus {
 export interface SystemStatus {
   system: string;
   version: string;
-  scheduler: SchedulerStatus;
+  status?: string;
+  scheduler?: SchedulerStatus;
   archive_count: number;
-  map_types: string[];
+  map_types?: string[];
 }
 
 async function fetchJSON<T>(path: string): Promise<T> {

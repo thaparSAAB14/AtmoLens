@@ -42,8 +42,7 @@ export function StatusBar() {
     );
   }
 
-  const sched = status.scheduler;
-  const isRunning = sched.running;
+  const isRunning = status.status === "online" || (status.scheduler && status.scheduler.running);
 
   return (
     <div className="flex flex-wrap items-center gap-4 px-4 py-2.5 rounded-xl bg-[var(--surface-container)] backdrop-blur-sm">
@@ -55,42 +54,25 @@ export function StatusBar() {
           }`}
         />
         <span className="text-[var(--text-secondary)] text-xs font-label uppercase">
-          {isRunning ? "Live" : "Paused"}
+          {isRunning ? "Live Edge" : "Offline"}
         </span>
       </div>
 
-      {/* Last fetch */}
-      {sched.last_fetch_time && (
+      {status.scheduler?.last_fetch_time && (
         <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-xs">
           <Clock size={12} />
-          <span>Last: {timeAgo(sched.last_fetch_time)}</span>
+          <span>Last: {timeAgo(status.scheduler.last_fetch_time)}</span>
         </div>
       )}
 
-      {/* Next run */}
-      {sched.next_scheduled_run && (
-        <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-xs">
-          <Zap size={12} />
-          <span>Next: {timeAgo(sched.next_scheduled_run)}</span>
-        </div>
-      )}
-
-      {/* Total processed */}
-      <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-xs">
-        <Activity size={12} />
-        <span>{sched.maps_processed_total} processed</span>
-      </div>
-
-      {/* Archive count */}
       <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-xs">
         <Database size={12} />
-        <span>{status.archive_count} in archive</span>
+        <span>{status.archive_count} maps indexed</span>
       </div>
 
-      {/* Interval */}
       <div className="text-[var(--text-muted)] text-xs font-label ml-auto hidden sm:flex items-center gap-1">
         <RefreshCw size={10} />
-        {sched.fetch_interval_minutes}min
+        Vercel Cron Active
       </div>
     </div>
   );
