@@ -5,13 +5,13 @@
   "framework": "nextjs",
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
+      "source": "/api/(.*)",
+      "destination": "api/index.py"
     }
   ],
   "functions": {
     "api/**/*.py": {
-      "runtime": "python3.9"
+      "runtime": "vercel-python@1.0.3"
     }
   },
   "crons": [
@@ -23,5 +23,6 @@
       "path": "/api/cron/cleanup",
       "schedule": "0 0 * * *"
     }
-  ]
+  ],
+  "regions": ["iad1"]
 }

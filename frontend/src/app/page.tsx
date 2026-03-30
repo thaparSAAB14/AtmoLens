@@ -69,7 +69,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── How It Works — asymmetric bento ──────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-6 py-28">
+      <section className="max-w-6xl mx-auto px-6 py-16">
         <div className="mb-16">
           <span className="text-[var(--text-muted)] text-xs font-label uppercase tracking-[0.15em]">
             The Pipeline

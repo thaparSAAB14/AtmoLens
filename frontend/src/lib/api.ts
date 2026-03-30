@@ -1,14 +1,14 @@
 /**
  * API client for the Weather Map Processor backend.
- * Vercel deployment - API routes are in same domain
+ * 🏗️ Vercel Monorepo: Same-domain relative /api pathing.
  */
 
 // API is in same domain under /api
 const API_BASE = "/api";
 
-// Log API base in development
+// Log API connectivity state
 if (process.env.NODE_ENV === 'development') {
-  console.log('🔌 API Base URL:', API_BASE, '(Same domain - Vercel)');
+  console.log('🔌 AtmoLens API Sync:', API_BASE, '(Vercel Serverless Ready)');
 }
 
 export interface MapInfo {
@@ -90,3 +90,34 @@ export const MAP_TYPE_GROUPS: Record<string, string[]> = {
   Surface: ["surface_00z", "surface_06z", "surface_12z", "surface_18z"],
   "Upper Air": ["upper_250hpa", "upper_500hpa", "upper_700hpa", "upper_850hpa"],
 };
+
+/**
+ * 🗺️ GIS Data & WMS Overlays
+ * Introducing support for high-resolution vector pulling.
+ */
+export interface GeoMetLayer {
+  id: string;
+  name: string;
+  wms_path: string;
+  description: string;
+}
+
+export const GEOMET_LAYERS: GeoMetLayer[] = [
+  {
+    id: "mslp",
+    name: "Mean Sea Level Pressure",
+    wms_path: "/geomet?service=WMS&version=1.3.0&request=GetMap&layers=GDPS.ETA_PRMSL",
+    description: "GDPS Surface Analysis Pressure (hPa)"
+  },
+  {
+    id: "tt",
+    name: "Temperature",
+    wms_path: "/geomet?service=WMS&version=1.3.0&request=GetMap&layers=GDPS.ETA_TT",
+    description: "Air Temperature (2m)"
+  }
+];
+
+/**
+ * 📜 Legal Clause: Mandated by ECCC License
+ */
+export const LEGAL_ATTRIBUTION = "Contains information licensed under the Open Government Licence – Canada";

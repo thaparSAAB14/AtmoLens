@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { MapViewer } from "@/components/MapViewer";
 import { MapTypeSelector } from "@/components/MapTypeSelector";
+import { GisLayerSelector } from "@/components/GisLayerSelector";
 import { StatusBar } from "@/components/StatusBar";
 
 const WarpShaderBackground = dynamic(
@@ -16,6 +17,7 @@ const WarpShaderBackground = dynamic(
 
 export default function MapsPage() {
   const [selectedMapType, setSelectedMapType] = useState("surface_12z");
+  const [selectedLayers, setSelectedLayers] = useState<string[]>([]);
 
   return (
     <div>
@@ -25,13 +27,13 @@ export default function MapsPage() {
       </div>
 
       {/* ─── Status Bar ─────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-6 transition-all duration-300">
         <StatusBar />
       </div>
 
       {/* ─── Page Header ────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-6 pb-4">
-        <h1 className="font-display text-3xl font-bold text-[var(--text-primary)]">
+      <div className="max-w-7xl mx-auto px-6 pb-2">
+        <h1 className="font-display text-4xl font-extrabold text-[var(--text-primary)] tracking-tight">
           Live <span className="gradient-text">Maps</span>
         </h1>
         <p className="text-[var(--text-secondary)] text-sm mt-2">
@@ -50,6 +52,11 @@ export default function MapsPage() {
               <MapTypeSelector
                 selected={selectedMapType}
                 onChange={setSelectedMapType}
+              />
+              <div className="border-t border-[var(--border)] pt-4 mt-4" />
+              <GisLayerSelector
+                selected={selectedLayers}
+                onChange={setSelectedLayers}
               />
             </div>
           </aside>
