@@ -29,7 +29,7 @@ export function GisLayerSelector({
       <div className="flex items-center gap-2 px-1 text-[var(--accent)] mb-2">
         <Layers size={14} />
         <h4 className="text-xs font-label uppercase tracking-widest">
-           Weather Data Overlays (WMS)
+           RDPA Overlays (WMS)
         </h4>
         {disabled && (
           <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-container)] text-[var(--text-muted)]">
@@ -66,7 +66,7 @@ export function GisLayerSelector({
         ))}
       </div>
       <p className="text-[10px] text-[var(--text-muted)] mt-4 px-1 leading-relaxed italic opacity-80">
-        Geo-referenced overlays (Canada + North America extent) from MSC GeoMet.
+        Regional Deterministic Precipitation Analysis (RDPA) from MSC GeoMet, aligned on georeferenced WMS tiles.
       </p>
     </div>
   );

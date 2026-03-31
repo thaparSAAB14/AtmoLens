@@ -11,11 +11,11 @@ type JimpImage = {
 
 type RGB = { r: number; g: number; b: number };
 
-const FOREGROUND_THRESHOLD = 95;
 const SURFACE_LAND: RGB = { r: 220, g: 236, b: 203 }; // #DCECCB
 const SURFACE_WATER: RGB = { r: 74, g: 144, b: 226 }; // #4A90E2
 const UPPER_LAND: RGB = { r: 232, g: 238, b: 228 }; // soft neutral
 const UPPER_WATER: RGB = { r: 165, g: 204, b: 236 }; // softer blue for upper-air maps
+const FOREGROUND_INK: RGB = { r: 23, g: 27, b: 35 };
 
 const OCEAN_SEED_POINTS: ReadonlyArray<readonly [number, number]> = [
   [0.08, 0.62], // Pacific
@@ -59,24 +59,94 @@ async function getBuffer(image: JimpImage, mime: string): Promise<Buffer> {
   });
 }
 
-function isForeground(data: Buffer, offset: number): boolean {
-  const r = data[offset];
-  const g = data[offset + 1];
-  const b = data[offset + 2];
-  const gray = (r + g + b) / 3;
-  return gray < FOREGROUND_THRESHOLD;
+function toGray(data: Buffer): Uint8Array {
+  const gray = new Uint8Array(data.length / 4);
+  for (let i = 0, p = 0; i < data.length; i += 4, p += 1) {
+    gray[p] = ((data[i] + data[i + 1] + data[i + 2]) / 3) | 0;
+  }
+  return gray;
 }
 
-function buildWaterMask(data: Buffer, width: number, height: number): { mask: Uint8Array; coverage: number } {
+function computeOtsuThreshold(gray: Uint8Array): number {
+  const histogram = new Array<number>(256).fill(0);
+  for (let i = 0; i < gray.length; i += 1) histogram[gray[i]] += 1;
+
+  const total = gray.length;
+  let weightedSum = 0;
+  for (let i = 0; i < 256; i += 1) weightedSum += i * histogram[i];
+
+  let backgroundWeight = 0;
+  let backgroundSum = 0;
+  let maxVariance = -1;
+  let threshold = 96;
+
+  for (let i = 0; i < 256; i += 1) {
+    backgroundWeight += histogram[i];
+    if (backgroundWeight === 0) continue;
+    const foregroundWeight = total - backgroundWeight;
+    if (foregroundWeight === 0) break;
+
+    backgroundSum += i * histogram[i];
+    const backgroundMean = backgroundSum / backgroundWeight;
+    const foregroundMean = (weightedSum - backgroundSum) / foregroundWeight;
+    const betweenClassVariance =
+      backgroundWeight * foregroundWeight * (backgroundMean - foregroundMean) * (backgroundMean - foregroundMean);
+
+    if (betweenClassVariance > maxVariance) {
+      maxVariance = betweenClassVariance;
+      threshold = i;
+    }
+  }
+
+  return Math.max(70, Math.min(140, threshold));
+}
+
+function buildForegroundMask(gray: Uint8Array, threshold: number): Uint8Array {
+  const mask = new Uint8Array(gray.length);
+  for (let i = 0; i < gray.length; i += 1) {
+    mask[i] = gray[i] <= threshold ? 1 : 0;
+  }
+  return mask;
+}
+
+function refineForegroundMask(mask: Uint8Array, width: number, height: number): Uint8Array {
+  const refined = new Uint8Array(mask);
+  const neighborOffsets = [
+    -width - 1,
+    -width,
+    -width + 1,
+    -1,
+    1,
+    width - 1,
+    width,
+    width + 1,
+  ];
+
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const idx = y * width + x;
+      let darkNeighbors = 0;
+      for (const offset of neighborOffsets) {
+        darkNeighbors += mask[idx + offset];
+      }
+
+      if (mask[idx] === 1 && darkNeighbors <= 1) {
+        refined[idx] = 0;
+      } else if (mask[idx] === 0 && darkNeighbors >= 6) {
+        refined[idx] = 1;
+      }
+    }
+  }
+  return refined;
+}
+
+function buildWaterMask(foregroundMask: Uint8Array, width: number, height: number): { mask: Uint8Array; coverage: number } {
   const totalPixels = width * height;
   const mask = new Uint8Array(totalPixels);
   const seen = new Uint8Array(totalPixels);
   const queue = new Int32Array(totalPixels);
 
-  const isFillable = (pixelIndex: number): boolean => {
-    const offset = pixelIndex * 4;
-    return !isForeground(data, offset);
-  };
+  const isFillable = (pixelIndex: number): boolean => foregroundMask[pixelIndex] === 0;
 
   let head = 0;
   let tail = 0;
@@ -127,6 +197,27 @@ function buildWaterMask(data: Buffer, width: number, height: number): { mask: Ui
   return { mask, coverage: waterPixels / totalPixels };
 }
 
+function hasForegroundNeighbor(foregroundMask: Uint8Array, width: number, height: number, pixelIndex: number): boolean {
+  const y = (pixelIndex / width) | 0;
+  const x = pixelIndex - y * width;
+  if (x <= 0 || y <= 0 || x >= width - 1 || y >= height - 1) return false;
+
+  const neighbors = [
+    pixelIndex - width - 1,
+    pixelIndex - width,
+    pixelIndex - width + 1,
+    pixelIndex - 1,
+    pixelIndex + 1,
+    pixelIndex + width - 1,
+    pixelIndex + width,
+    pixelIndex + width + 1,
+  ];
+  for (const n of neighbors) {
+    if (foregroundMask[n] === 1) return true;
+  }
+  return false;
+}
+
 function selectPalette(mapType?: string): { land: RGB; water: RGB } {
   if (mapType?.startsWith("upper_")) {
     return { land: UPPER_LAND, water: UPPER_WATER };
@@ -134,33 +225,48 @@ function selectPalette(mapType?: string): { land: RGB; water: RGB } {
   return { land: SURFACE_LAND, water: SURFACE_WATER };
 }
 
+function applyTone(pixelData: Buffer, offset: number, tone: RGB, darken: boolean): void {
+  const multiplier = darken ? 0.9 : 1;
+  pixelData[offset] = Math.round(tone.r * multiplier);
+  pixelData[offset + 1] = Math.round(tone.g * multiplier);
+  pixelData[offset + 2] = Math.round(tone.b * multiplier);
+}
+
 export async function processImage(rawBytes: Buffer, mapType?: string): Promise<Buffer> {
-    const read = getJimpRead();
-    const image = await read(rawBytes);
-    const { width, height, data } = image.bitmap;
-    const palette = selectPalette(mapType);
-    const { mask: waterMask, coverage } = buildWaterMask(data, width, height);
-    const useWaterMask = coverage >= 0.03 && coverage <= 0.9;
+  const read = getJimpRead();
+  const image = await read(rawBytes);
+  const { width, height, data } = image.bitmap;
+  const palette = selectPalette(mapType);
 
-    for (let pixelIndex = 0; pixelIndex < width * height; pixelIndex += 1) {
-        const idx = pixelIndex * 4;
-        if (isForeground(data, idx)) {
-            continue;
-        }
+  // Step 1: derive adaptive foreground threshold from luminance distribution.
+  const gray = toGray(data);
+  const threshold = computeOtsuThreshold(gray);
 
-        const isWater = useWaterMask && waterMask[pixelIndex] === 1;
-        if (isWater) {
-            data[idx] = palette.water.r;
-            data[idx + 1] = palette.water.g;
-            data[idx + 2] = palette.water.b;
-        } else {
-            data[idx] = palette.land.r;
-            data[idx + 1] = palette.land.g;
-            data[idx + 2] = palette.land.b;
-        }
+  // Step 2: isolate and stabilize meteorological linework.
+  const initialForeground = buildForegroundMask(gray, threshold);
+  const foregroundMask = refineForegroundMask(initialForeground, width, height);
+
+  // Step 3: infer ocean regions using seeded flood fill on non-foreground pixels.
+  const { mask: waterMask, coverage } = buildWaterMask(foregroundMask, width, height);
+  const useWaterMask = coverage >= 0.03 && coverage <= 0.9;
+
+  // Step 4: apply palette while preserving foreground readability.
+  const totalPixels = width * height;
+  for (let pixelIndex = 0; pixelIndex < totalPixels; pixelIndex += 1) {
+    const offset = pixelIndex * 4;
+    if (foregroundMask[pixelIndex] === 1) {
+      data[offset] = FOREGROUND_INK.r;
+      data[offset + 1] = FOREGROUND_INK.g;
+      data[offset + 2] = FOREGROUND_INK.b;
+      continue;
     }
 
-    return await getBuffer(image, "image/png");
+    const nearLine = hasForegroundNeighbor(foregroundMask, width, height, pixelIndex);
+    const isWater = useWaterMask && waterMask[pixelIndex] === 1;
+    applyTone(data, offset, isWater ? palette.water : palette.land, nearLine);
+  }
+
+  return await getBuffer(image, "image/png");
 }
 
 export async function convertOriginalToPng(rawBytes: Buffer): Promise<Buffer> {

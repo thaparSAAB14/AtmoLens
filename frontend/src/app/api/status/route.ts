@@ -12,7 +12,7 @@ export async function GET() {
         ]);
         return NextResponse.json({
             system: "AtmoLens",
-            version: "3.0.5 (Maps Fit + Local Time)",
+            version: "3.0.7 (RDPA Overlay + Adaptive Enhancer)",
             status: "online",
             archive_count: archiveCount,
             map_types: mapTypes,
