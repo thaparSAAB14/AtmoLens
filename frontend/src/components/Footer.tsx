@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Cloud } from "lucide-react";
 import { FlickeringGrid } from "@/components/ui/flickering-grid";
@@ -6,7 +6,6 @@ import { FlickeringGrid } from "@/components/ui/flickering-grid";
 export function Footer() {
   return (
     <footer className="relative mt-16 overflow-hidden border-t border-[var(--border)]">
-      {/* Flickering grid background */}
       <div className="absolute inset-0 opacity-10">
         <FlickeringGrid
           squareSize={3}
@@ -27,20 +26,18 @@ export function Footer() {
             </span>
           </div>
           <p className="text-[var(--text-secondary)] text-xs text-center max-w-md">
-             Data Source: Environment and Climate Change Canada. Contains information licensed under the Open Government Licence – Canada. See the{" "}
-             <a
-               href="https://eccc-msc.github.io/open-data/licence/readme_en/"
-               target="_blank"
-               rel="noopener noreferrer"
-               className="text-[var(--accent)] hover:text-[var(--accent-glow)] transition-colors underline underline-offset-2"
-             >
-               ECCC Data Servers End-use Licence
-             </a>
-             .
+            Data source: Environment and Climate Change Canada (ECCC). Contains information licensed under the Open Government Licence - Canada. Not affiliated with or endorsed by the Government of Canada. See the{" "}
+            <a
+              href="https://eccc-msc.github.io/open-data/licence/readme_en/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--accent)] hover:text-[var(--accent-glow)] transition-colors underline underline-offset-2"
+            >
+              ECCC Data Servers End-use Licence
+            </a>
+            .
           </p>
-          <p className="text-[var(--text-secondary)] text-xs font-label">
-             Auto-updates every 30 min
-          </p>
+          <p className="text-[var(--text-secondary)] text-xs font-label">Auto-updates every 30 min</p>
         </div>
       </div>
     </footer>

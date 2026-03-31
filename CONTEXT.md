@@ -1,198 +1,115 @@
-# AtmoLens - Technical Context
-> **LLM Sync Protocol**: Any AI assistant starting a session MUST read this file in full to understand the 100% Next.js Full-Stack pivot. Do not attempt to re-introduce Python or OpenCV.
+﻿# AtmoLens - Technical Context
+> LLM Sync Protocol: read this file before changing architecture.
 
 ## Project Overview
-
-AtmoLens is an automated weather map enhancement system that transforms grayscale ECCC synoptic charts into color-enhanced, readable maps with zero manual intervention.
+AtmoLens is a Next.js full-stack system that fetches ECCC analysis maps, preserves originals, enhances readability, stores map history, and serves live/archived map experiences.
 
 ## Architecture
+- Deployment: Vercel + Next.js App Router
+- Frontend: React 19, TypeScript, Tailwind CSS 4
+- API: Next.js route handlers under `frontend/src/app/api/*`
+- Processing: `jimp` in `frontend/src/lib/processor.ts`
+- Database: Neon Serverless Postgres (`@neondatabase/serverless`)
+- Storage: Vercel Blob (`@vercel/blob`)
+- Automation: Vercel Cron (`/api/cron/fetch-maps` every 30 min, `/api/cron/cleanup` daily)
 
-### Deployment: 100% Vercel Native
+## Data Flow
+1. Fetch latest map GIF from ECCC static endpoints.
+2. Compute hash (includes map type + enhancer version).
+3. Skip only when latest stored hash for that map type is unchanged.
+4. Process with adaptive enhancement pipeline.
+5. Upload processed PNG + original GIF to Blob.
+6. Insert metadata row in Postgres.
+7. Serve latest and archive via same-domain API.
 
-AtmoLens has been refactored into a **100% Next.js Full-Stack Architecture**. This eliminates the overhead and instability of Python serverless runtimes by leveraging native TypeScript and Node.js Edge-ready modules.
+## Current Map Enhancement Pipeline
+File: `frontend/src/lib/processor.ts`
 
-```
-┌─────────────────────────────────────────┐
-│  VERCEL (Unified Full-Stack)           │
-├─────────────────────────────────────────┤
-│                                         │
-│  Frontend & API (Next.js 16)           │
-│  - React 19, TypeScript, Tailwind 4    │
-│  - Native API Routes (@/app/api/*)     │
-│  - Server Actions (@/app/actions/*)    │
-│                                         │
-│  Image Processing (Node.js Serverless) │
-│  - Jimp (@/lib/processor.ts)           │
-│  - Pixel-perfect "Bit Depth" coloring  │
-│                                         │
-│  Database & Storage                    │
-│  - Neon Serverless (Postgres via HTTP) │
-│  - Vercel Blob (Map Image CDN)         │
-│                                         │
-│  Automation (Vercel Crons)             │
-│  - /api/cron/fetch-maps (30 min)       │
-│  - /api/cron/cleanup (daily)           │
-│                                         │
-└─────────────────────────────────────────┘
-```
+Steps:
+1. Convert RGBA image to luminance map.
+2. Compute adaptive threshold (Otsu, bounded) for foreground extraction.
+3. Refine foreground mask to preserve weather lines and remove speckles.
+4. Build ocean mask using seeded flood-fill on non-foreground regions.
+5. Recolor with map-type palettes while preserving dark foreground ink.
+6. Export PNG.
 
-### Data Flow
+Notes:
+- Surface maps use stronger land/water contrast.
+- Upper-air maps use softer tones for readability.
 
-```
-ECCC Weather API (GIF)
-    ↓
-fetch() in Next.js API Route
-    ↓
-SHA-256 Dedup Check (Neon Postgres)
-    ↓
-Jimp Pixel Processing (TS)
-    ↓
-Vercel Blob Storage
-    ↓
-Blob Proxy (if private store)
-    ↓
-Neon Postgres Metadata Update
-    ↓
-Next.js Frontend (Revalidate /maps)
-    ↓
-User Browser (Global CDN)
-```
+## Overlay System (Geo-referenced)
+- Proxy route: `frontend/src/app/api/geomet/wms/route.ts`
+- Source endpoint: `https://geo.weather.gc.ca/geomet`
+- Current overlay strategy: RDPA-first WMS layers (EPSG:4326)
+  - `RDPA.6F_PR`
+  - `RDPA.6P_PR`
+  - `RDPA.24F_PR`
+  - `RDPA.24P_PR`
+- Proxy safeguards:
+  - whitelist layer names
+  - whitelist CRS and output format
+  - reject non-image upstream responses (including XML service exceptions)
 
-## Backend Logic (Next.js API Routes)
+## Storage Model
+File: `frontend/src/lib/storage.ts`
 
-### 1. Fetching & Processing (`/api/cron/fetch-maps`)
-- Core logic resides in `frontend/src/app/api/cron/fetch-maps/route.ts`.
-- Fetches 8 map types from ECCC static URLs.
-- Uses `crypto` for SHA-256 deduplication.
-- Skips processing/upload when a hash already exists in Postgres.
-- Stores originals as GIF (no GIF→PNG conversion) to keep the cron fast.
-- Uses `BLOB_ACCESS` (public/private) for Blob writes.
-- **Image Pipeline (`src/lib/processor.ts`):** 
-  - Uses `Jimp` for lightweight, dependency-free Node.js image manipulation.
-  - Scans pixels sequentially: 
-    - `gray < 100`: Foreground (preserves original text/isobars).
-    - `100 < gray < 240`: Land (#DCECCB).
-    - `gray >= 240`: Water (#4A90E2).
+`maps` table fields:
+- `id SERIAL PRIMARY KEY`
+- `map_type TEXT NOT NULL`
+- `filename TEXT NOT NULL`
+- `blob_url TEXT NOT NULL`
+- `original_blob_url TEXT`
+- `timestamp TIMESTAMPTZ NOT NULL`
+- `hash TEXT NOT NULL`
 
-### 2. Database Layer (`src/lib/storage.ts`)
-- Uses `@neondatabase/serverless` for **HTTP-based SQL queries**.
-- Bypasses TCP connection limits and TLS/channel_binding issues common in serverless Python.
-- Automatically handles table initialization (`initDb`) on every cold-start.
+Indexes:
+- `idx_maps_type_ts` on `(map_type, timestamp DESC)`
+- `idx_maps_type_hash_ts` on `(map_type, hash, timestamp DESC)`
 
-### 3. Meteorologist's Notebook
-- Feature implementation in `src/app/actions/notes.ts`.
-- Uses **Next.js Server Actions** to record observational logs directly from the UI to Neon Postgres.
+Important behavior:
+- `hash` is no longer globally unique.
+- Archive preserves history; dedupe is "latest-per-map-type" only.
 
-### 4. Force Sync
-- Integrated into `StatusBar.tsx`.
-- In local development, allows manually triggering `/api/cron/fetch-maps` to populate the database instantly.
+## API Surface
+- `/api/status`
+- `/api/maps/latest`
+- `/api/maps/latest/[mapType]`
+- `/api/maps/archive`
+- `/api/maps/archive/[mapType]`
+- `/api/geomet/wms`
+- `/api/blob`
+- `/api/cron/fetch-maps`
+- `/api/cron/cleanup`
 
-### 5. Blob Proxy (`/api/blob`)
-- Provides authenticated access to private Blob stores.
-- `MapInfo.image_url` / `original_url` is routed through `/api/blob?path=...` when `BLOB_ACCESS` is not `public`.
+## Security and Compliance
+1. Secrets
+- `POSTGRES_URL` and `BLOB_READ_WRITE_TOKEN` required server-side.
 
-## Frontend Architecture
+2. Licensing and attribution
+- Footer includes the required OGL notice and source attribution.
+- Overlay panel includes OGL attribution text.
 
-### Pages (App Router)
+3. Legal exposure check (2026-03-31)
+- Status: low to moderate, mitigated.
+- Verified:
+  - OGL Canada attribution present in runtime UI.
+  - ECCC source identified.
+  - Non-endorsement language included in footer.
+- Mitigations added:
+  - Removed runtime Google Fonts request from 404 component.
+  - Normalized OGL text to clean ASCII to avoid encoding corruption.
+- Open items to monitor:
+  - Decommission notice for legacy analysis products by end of 2026.
+  - Optional: replace external Unsplash image with first-party asset to reduce third-party dependency.
 
-1. **Home** (`/app/page.tsx`)
-   - Hero with Warp Shader (Three.js/GLSL).
-   - Bento-grid design system.
-
-2. **Maps** (`/app/maps/page.tsx`)
-   - **StatusBar**: Real-time Edge health and "Force Sync" control.
-   - **MapViewer**: Zoomable, downloadable, revalidating map display.
-   - **Notebook**: Observational log interface (Server Action).
-
-3. **Archive** (`/app/archive/page.tsx`)
-   - 7-day rolling gallery using Postgres metadata.
-
-4. **About** (`/app/about/page.tsx`)
-   - **DO NOT MODIFY** - finalized narrative asset.
-
-5. **Historical Decision Log (LLM Persistence)**
-   - **2026-03-30**: Absolute Pivot from Python/FastAPI to 100% Next.js.
-   - **Reasoning**: Vercel Python runtime limits (OpenCV binary size and TCP timeout) caused persistent 500 errors.
-   - **Solution**: Replaced with `jimp` (Node.js) and `@neondatabase/serverless` (HTTP).
-   - **Result**: "Backend Offline" error resolved; 300ms edge execution.
-- **2026-03-30**: Normalized map API payloads (`image_url`/`original_url`) and improved Maps/Archive UX (errors, downloads, zoom). Added `/api/cron/cleanup` to match scheduled cron. Fixed `Jimp.read` binding and `getBuffer()` Promise handling so `/api/cron/fetch-maps` completes in production. Added early SHA-256 dedupe, stored original GIF, and introduced `/api/blob` for private Blob stores.
-- **2026-03-30**: Maps UI now fits the full image (no scroll), shows local time conversion alongside UTC, and removes the Notebook panel from `/maps`.
-- **2026-03-30**: UI refresh for scrapbook hero, mobile-friendly nav + footer blending, MagnetLines background on Maps, archive clarity upgrades, and a themed 404 with cloud favicon.
-- **2026-03-31**: RDPA-first georeferenced WMS overlays added (`RDPA.6F_PR`, `RDPA.6P_PR`, `RDPA.24F_PR`, `RDPA.24P_PR`), GeoMet proxy now rejects non-image upstream payloads, and map enhancement upgraded to a multi-step adaptive pipeline (adaptive threshold -> foreground refinement -> seeded ocean fill -> readability-safe recolor). Enhancer hash versioning now forces fresh reprocessing after algorithm updates.
-
-### API Client (`lib/api.ts`)
-- Same-domain requests to `/api/status`, `/api/maps/latest`, etc.
-- Standardized `SystemStatus` interface (Live Edge status).
-
-## Database Schema
-
-### tables
-
-```sql
--- Map Metadata
-CREATE TABLE maps (
-    id SERIAL PRIMARY KEY,
-    map_type TEXT NOT NULL,
-    filename TEXT NOT NULL,
-    blob_url TEXT NOT NULL,
-    original_blob_url TEXT,
-    timestamp TIMESTAMPTZ NOT NULL,
-    hash TEXT UNIQUE NOT NULL
-);
-
--- Observational Logs
-CREATE TABLE observer_notes (
-    id SERIAL PRIMARY KEY,
-    note TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-## Configuration (vercel.json)
-
-```json
-{
-  "version": 2,
-  "buildCommand": "cd frontend && npm install && npm run build",
-  "outputDirectory": "frontend/.next",
-  "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/cron/fetch-maps",
-      "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron/cleanup",
-      "schedule": "0 0 * * *"
-    }
-  ]
-}
-```
-
-## Security & Compliance
-1. **Neon HTTP Auth**: Secured via `POSTGRES_URL` connection strings.
-2. **Vercel Blob**: Protected via `BLOB_READ_WRITE_TOKEN`.
-3. **Legal**: Every data-rendering page includes: *"Contains information licensed under the Open Government Licence – Canada."*
-
-## Recommended Technical Data (Important)
-
-### 1. Image Processing Specs (Jimp)
-- **Library**: `jimp` (Native JS)
-- **Algorithm**: Logical pixel scanning (Spatial Thresholding).
-- **Colors**: Land (#DCECCB), Water (#4A90E2).
-- **Logic**: Preserves `gray < 100` as foreground isobars.
-
-### 2. Database Integration (Neon)
-- **Driver**: `@neondatabase/serverless` (Native HTTP).
-- **Connectivity**: Uses `neon(process.env.POSTGRES_URL)`.
-- **Note**: No persistent TCP connections; stateless edge execution.
-
-### 3. Vercel Blob
-- **Method**: `put(filename, buffer, { access: BLOB_ACCESS })`.
-- **Token**: `BLOB_READ_WRITE_TOKEN`.
-- **Access**: `BLOB_ACCESS=private` uses `/api/blob` proxy (default); set `BLOB_ACCESS=public` to serve blob URLs directly.
+## Historical Decision Log
+- 2026-03-30: Pivoted from Python/OpenCV backend to 100% Next.js full-stack.
+- 2026-03-30: Added Blob proxy and fixed cron processing stability.
+- 2026-03-30: Improved Maps/Archive UX and local-time display.
+- 2026-03-31: Introduced RDPA-first georeferenced overlays and hardened WMS proxy error handling.
+- 2026-03-31: Upgraded enhancer to adaptive multi-step pipeline and versioned processing hash.
+- 2026-03-31: Completed legal exposure audit and tightened attribution/compliance text.
 
 ---
-
 **Last Updated:** 2026-03-31
-**Version:** 3.0.7 (RDPA Overlay + Adaptive Enhancer)
+**Version:** 3.0.8 (Legal Audit + Context Refresh)

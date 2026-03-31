@@ -54,7 +54,7 @@ export const GEOMET_LAYERS: GeoMetLayer[] = [
 ];
 
 export const GEOMET_ATTRIBUTION =
-  "Contains information licensed under the Open Government Licence – Canada.";
+  "Contains information licensed under the Open Government Licence - Canada. Source: Environment and Climate Change Canada (ECCC).";
 
 export const GEOMET_WMS_LAYER_NAMES = new Set(GEOMET_LAYERS.map((layer) => layer.layer));
 

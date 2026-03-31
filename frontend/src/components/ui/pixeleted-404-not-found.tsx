@@ -27,13 +27,6 @@ export function Error404({
 }: Error404Props) {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-16">
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Doto:wght@100..900&display=swap"
-        rel="stylesheet"
-      />
-
       <div className="flex flex-col items-center">
         <div className="relative mb-16">
           <svg
@@ -99,7 +92,7 @@ export function Error404({
         </div>
 
         <div className="text-center max-w-2xl">
-          <h1 className="text-4xl md:text-5xl font-doto mb-6 text-balance leading-tight">
+          <h1 className="text-4xl md:text-5xl font-display mb-6 text-balance leading-tight">
             {heading}
           </h1>
           <p className="text-muted-foreground text-base md:text-lg mb-10 font-sans">
