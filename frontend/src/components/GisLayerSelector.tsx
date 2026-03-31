@@ -1,6 +1,6 @@
 "use client";
 
-import { GEOMET_LAYERS, type GeoMetLayer } from "@/lib/api";
+import { GEOMET_LAYERS, type GeoMetLayer } from "@/lib/geomet";
 import { cn } from "@/lib/utils";
 import { Layers } from "lucide-react";
 
@@ -13,7 +13,7 @@ interface GisLayerSelectorProps {
 export function GisLayerSelector({
   selected,
   onChange,
-  disabled = true,
+  disabled = false,
 }: GisLayerSelectorProps) {
   const toggleLayer = (id: string) => {
     if (disabled) return;
@@ -33,7 +33,7 @@ export function GisLayerSelector({
         </h4>
         {disabled && (
           <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-container)] text-[var(--text-muted)]">
-            Coming soon
+            Disabled
           </span>
         )}
       </div>
@@ -55,7 +55,7 @@ export function GisLayerSelector({
             <div className="flex flex-col items-start gap-0.5">
               <span>{layer.name}</span>
               <span className="text-[10px] opacity-60 font-normal">
-                {layer.id.toUpperCase()} • GeoMet Vector
+                {layer.layer} • GeoMet WMS
               </span>
             </div>
             {!disabled && selected.includes(layer.id) && (
@@ -64,8 +64,8 @@ export function GisLayerSelector({
           </button>
         ))}
       </div>
-      <p className="text-[10px] text-[var(--text-muted)] mt-4 px-1 leading-relaxed italic opacity-60">
-        Overlays are in preview while we validate alignment and performance.
+      <p className="text-[10px] text-[var(--text-muted)] mt-4 px-1 leading-relaxed italic opacity-80">
+        Geo-referenced overlays (Canada + North America extent) from MSC GeoMet.
       </p>
     </div>
   );

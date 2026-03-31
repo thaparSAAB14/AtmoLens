@@ -2,14 +2,16 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getLatestMaps, getImageUrl, MAP_TYPE_LABELS, type MapInfo } from "@/lib/api";
+import { GEOMET_ATTRIBUTION, GEOMET_LAYERS } from "@/lib/geomet";
 import { formatTimestamp, formatTimestampLocal, timeAgo } from "@/lib/utils";
 import { Download, Maximize2, Minimize2 } from "lucide-react";
 
 interface MapViewerProps {
   selectedType: string;
+  selectedLayers: string[];
 }
 
-export function MapViewer({ selectedType }: MapViewerProps) {
+export function MapViewer({ selectedType, selectedLayers }: MapViewerProps) {
   const [maps, setMaps] = useState<Record<string, MapInfo>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +99,10 @@ export function MapViewer({ selectedType }: MapViewerProps) {
   const localTimestamp = currentMap?.timestamp ? formatTimestampLocal(currentMap.timestamp) : "";
 
   const hasAnyData = Object.keys(maps).length > 0;
+  const canUseGeoMet = selectedType.startsWith("surface_");
+  const geometTime = currentMap?.timestamp ? new Date(currentMap.timestamp).toISOString() : undefined;
+  const geometBbox = "-175,10,-15,85"; // North America-friendly bbox in EPSG:4326
+  const selectedGeoLayers = GEOMET_LAYERS.filter((layer) => selectedLayers.includes(layer.id));
 
   if (loading) {
     return (
@@ -262,12 +268,42 @@ export function MapViewer({ selectedType }: MapViewerProps) {
           }`}
         >
           {imageUrl && (
-            <img
-              src={imageUrl}
-              alt={MAP_TYPE_LABELS[selectedType] || selectedType}
-              className="w-full h-full object-contain"
-              draggable={false}
-            />
+            <>
+              <img
+                src={imageUrl}
+                alt={MAP_TYPE_LABELS[selectedType] || selectedType}
+                className="w-full h-full object-contain"
+                draggable={false}
+              />
+              {canUseGeoMet &&
+                selectedGeoLayers.map((layer) => {
+                  const qs = new URLSearchParams({
+                    service: "WMS",
+                    version: "1.3.0",
+                    request: "GetMap",
+                    layers: layer.layer,
+                    styles: "",
+                    transparent: "true",
+                    format: "image/png",
+                    crs: "EPSG:4326",
+                    bbox: geometBbox,
+                    width: "1400",
+                    height: "900",
+                  });
+                  if (geometTime) qs.set("time", geometTime);
+
+                  return (
+                    <img
+                      key={layer.id}
+                      src={`/api/geomet/wms?${qs.toString()}`}
+                      alt={`${layer.name} overlay`}
+                      className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+                      style={{ opacity: layer.opacity ?? 0.6 }}
+                      draggable={false}
+                    />
+                  );
+                })}
+            </>
           )}
         </div>
 
@@ -280,6 +316,14 @@ export function MapViewer({ selectedType }: MapViewerProps) {
             UTC: {utcTimestamp}
           </p>
         </div>
+        {canUseGeoMet && selectedGeoLayers.length > 0 && (
+          <div className="absolute right-3 bottom-3 max-w-[min(60ch,60%)] bg-[var(--surface)]/80 backdrop-blur-sm rounded-lg px-3 py-2">
+            <p className="text-[10px] text-[var(--text-secondary)] font-label">
+              WMS: {selectedGeoLayers.map((l) => l.name).join(", ")}
+            </p>
+            <p className="text-[10px] text-[var(--text-muted)]">{GEOMET_ATTRIBUTION}</p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,3 +1,5 @@
+import { GEOMET_ATTRIBUTION, GEOMET_LAYERS, type GeoMetLayer } from "@/lib/geomet";
+
 /**
  * API client for the Weather Map Processor backend.
  * 🏗️ Vercel Monorepo: Same-domain relative /api pathing.
@@ -92,33 +94,5 @@ export const MAP_TYPE_GROUPS: Record<string, string[]> = {
   "Upper Air": ["upper_250hpa", "upper_500hpa", "upper_700hpa", "upper_850hpa"],
 };
 
-/**
- * 🗺️ GIS Data & WMS Overlays
- * Introducing support for high-resolution vector pulling.
- */
-export interface GeoMetLayer {
-  id: string;
-  name: string;
-  wms_path: string;
-  description: string;
-}
-
-export const GEOMET_LAYERS: GeoMetLayer[] = [
-  {
-    id: "mslp",
-    name: "Mean Sea Level Pressure",
-    wms_path: "/geomet?service=WMS&version=1.3.0&request=GetMap&layers=GDPS.ETA_PRMSL",
-    description: "GDPS Surface Analysis Pressure (hPa)"
-  },
-  {
-    id: "tt",
-    name: "Temperature",
-    wms_path: "/geomet?service=WMS&version=1.3.0&request=GetMap&layers=GDPS.ETA_TT",
-    description: "Air Temperature (2m)"
-  }
-];
-
-/**
- * 📜 Legal Clause: Mandated by ECCC License
- */
-export const LEGAL_ATTRIBUTION = "Contains information licensed under the Open Government Licence – Canada";
+export { GEOMET_LAYERS, GEOMET_ATTRIBUTION };
+export type { GeoMetLayer };

@@ -61,7 +61,7 @@ export default function MapsPage() {
           </aside>
 
           <main>
-            <MapViewer selectedType={selectedMapType} />
+            <MapViewer selectedType={selectedMapType} selectedLayers={selectedLayers} />
           </main>
         </div>
       </section>
