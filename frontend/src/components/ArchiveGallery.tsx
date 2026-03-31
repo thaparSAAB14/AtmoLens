@@ -100,8 +100,14 @@ export function ArchiveGallery() {
         <Calendar className="mx-auto text-[var(--text-muted)] mb-4" size={48} />
         <p className="text-[var(--text-secondary)]">No archived maps yet</p>
         <p className="text-[var(--text-muted)] text-sm mt-1">
-          Maps will appear here after the first fetch cycle
+          The archive fills after the first successful sync. Check back soon.
         </p>
+        <button
+          onClick={() => load()}
+          className="mt-5 px-4 py-2 rounded-lg bg-[var(--accent-dim)] text-[var(--accent)] text-sm font-medium hover:bg-[var(--accent)]/15 transition-colors"
+        >
+          Refresh
+        </button>
       </div>
     );
   }

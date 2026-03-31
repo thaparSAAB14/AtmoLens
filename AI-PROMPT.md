@@ -36,13 +36,13 @@ This project is worked on by various LLMs across different platforms. To maintai
 - **Storage**: Vercel Blob (`@vercel/blob`).
 - **Processing**: Native Node.js `jimp` (No OpenCV).
 - **UI Architecture**: Next.js 16 App Router + Server Actions.
-3. **Store**: SHA-256 deduplicated, stored in Vercel Blob, metadata in Neon Postgres.
-4. **Notebook**: Server Action in `@/app/actions/notes.ts` records observational metadata.
-5. **UI**: High-fidelity dual-theme (Scrapbook/Obsidian modes).
+- **Store**: SHA-256 deduplicated, stored in Vercel Blob, metadata in Neon Postgres.
+- **Notebook**: Server Action in `@/app/actions/notes.ts` records observational metadata.
+- **UI**: High-fidelity dual-theme (Scrapbook/Obsidian modes).
 
 ## Important Constraints
 
-- **NO PYTHON**: The project is entirely Next.js. No `api/`, `backend/`, or `requirements.txt`.
+- **NO PYTHON BACKEND**: The project is entirely Next.js. Do not re-introduce a Python API service.
 - **NO-FLY ZONE**: DO NOT modify `/frontend/src/app/about` - it is a finalized narrative asset.
 - **Visual Focus**: High-contrast themes (Scrapbook #fdfbf0, Obsidian #121213).
 - **Attribution Required**: All maps MUST display: *"Contains information licensed under the Open Government Licence – Canada."*
@@ -73,7 +73,7 @@ atmolens/
 - **`src/lib/storage.ts`**: Database interface. Uses `initDb()` on each route entry for schema safety.
 - **`src/lib/processor.ts`**: Jimp pixel scanning pipeline.
 - **`src/app/api/cron/fetch-maps/route.ts`**: Core fetch/process/upload loop.
-- **`src/components/StatusBar.tsx`**: Health indicator with manual **Force Sync** button.
+- **`src/components/StatusBar.tsx`**: Health indicator with manual **Force Sync** button (local development only).
 
 ## Deployment Checklist
 
@@ -84,5 +84,5 @@ atmolens/
 
 ---
 
-**Last Updated:** 2026-03-31
-**Mission Directive Compiled by Antigravity — Google DeepMind.**
+**Last Updated:** 2026-03-30
+**Mission Directive Compiled by Antigravity.**

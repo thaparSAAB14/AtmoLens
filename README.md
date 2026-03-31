@@ -10,6 +10,8 @@ AtmoLens has been fully migrated to a **"One Domain, One Port"** serverless arch
 - **Backend**: Next.js Route Handlers under `/frontend/src/app/api` (same domain).
 - **Storage**: **Vercel Blob** (Images) + Postgres metadata (Neon Serverless via `@neondatabase/serverless`).
 - **Automation**: Automated ECCC synoptic pulls every 30 minutes via **Vercel Cron Jobs**.
+- **Deduplication**: Per-map SHA-256; unchanged maps are skipped to keep cron fast.
+- **Formats**: Enhanced maps stored as PNG; originals stored as GIF.
 
 ## 🎨 Design System: "Bit Depth"
 The interface utilizes the bespoke **Bit Depth** design system, switching seamlessly between:
@@ -35,4 +37,4 @@ To run the full-stack Next.js app locally:
 Processed meteorological data provided by **Environment and Climate Change Canada (ECCC)**.
 
 ---
-*Developed with 🖤 by Antigravity — Google DeepMind Advanced Agentic Coding.*
+*Developed by Antigravity.*

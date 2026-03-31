@@ -48,8 +48,8 @@ To ensure continuity between different LLM sessions:
 - **Map Processor**: `src/lib/processor.ts` (Jimp Logical Scanning).
 - **Database Connection**: `src/lib/storage.ts` (Neon Serverless HTTP).
 - **Storage Layer**: Vercel Blob (Native SDK).
-- **Frontend Framework**: Next.js 15 (App Router).
+- **Frontend Framework**: Next.js 16 (App Router).
 
 ---
 
-*Mission Directive compiled by Antigravity — Google DeepMind.*
+*Mission Directive compiled by Antigravity.*

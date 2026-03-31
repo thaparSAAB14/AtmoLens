@@ -21,7 +21,7 @@ AtmoLens has been refactored into a **100% Next.js Full-Stack Architecture**. Th
 │  - Native API Routes (@/app/api/*)     │
 │  - Server Actions (@/app/actions/*)    │
 │                                         │
-│  Image Processing (Node.js Edge)       │
+│  Image Processing (Node.js Serverless) │
 │  - Jimp (@/lib/processor.ts)           │
 │  - Pixel-perfect "Bit Depth" coloring  │
 │                                         │
@@ -43,7 +43,7 @@ ECCC Weather API (GIF)
     ↓
 fetch() in Next.js API Route
     ↓
-SHA-256 Hash Check (Neon Postgres)
+SHA-256 Dedup Check (Neon Postgres)
     ↓
 Jimp Pixel Processing (TS)
     ↓
@@ -62,6 +62,8 @@ User Browser (Global CDN)
 - Core logic resides in `frontend/src/app/api/cron/fetch-maps/route.ts`.
 - Fetches 8 map types from ECCC static URLs.
 - Uses `crypto` for SHA-256 deduplication.
+- Skips processing/upload when a hash already exists in Postgres.
+- Stores originals as GIF (no GIF→PNG conversion) to keep the cron fast.
 - **Image Pipeline (`src/lib/processor.ts`):** 
   - Uses `Jimp` for lightweight, dependency-free Node.js image manipulation.
   - Scans pixels sequentially: 
@@ -80,7 +82,7 @@ User Browser (Global CDN)
 
 ### 4. Force Sync
 - Integrated into `StatusBar.tsx`.
-- Allows users to manually trigger the internal `/api/cron/fetch-maps` route to populate the database instantly.
+- In local development, allows manually triggering `/api/cron/fetch-maps` to populate the database instantly.
 
 ## Frontend Architecture
 
@@ -106,7 +108,7 @@ User Browser (Global CDN)
    - **Reasoning**: Vercel Python runtime limits (OpenCV binary size and TCP timeout) caused persistent 500 errors.
    - **Solution**: Replaced with `jimp` (Node.js) and `@neondatabase/serverless` (HTTP).
    - **Result**: "Backend Offline" error resolved; 300ms edge execution.
-   - **2026-03-31**: Normalized map API payloads (`image_url`/`original_url`) and improved Maps/Archive UX (errors, downloads, zoom). Added `/api/cron/cleanup` to match scheduled cron. Fixed `Jimp.read` binding so `/api/cron/fetch-maps` runs in production.
+   - **2026-03-30**: Normalized map API payloads (`image_url`/`original_url`) and improved Maps/Archive UX (errors, downloads, zoom). Added `/api/cron/cleanup` to match scheduled cron. Fixed `Jimp.read` binding and `getBuffer()` Promise handling so `/api/cron/fetch-maps` completes in production. Added early SHA-256 dedupe and stored original GIF to keep the cron fast.
 
 ### API Client (`lib/api.ts`)
 - Same-domain requests to `/api/status`, `/api/maps/latest`, etc.
@@ -181,5 +183,5 @@ CREATE TABLE observer_notes (
 
 ---
 
-**Last Updated:** 2026-03-31
-**Version:** 3.0.2 (Fetch Pipeline Fix)
+**Last Updated:** 2026-03-30
+**Version:** 3.0.3 (Cron Pipeline Stabilization)

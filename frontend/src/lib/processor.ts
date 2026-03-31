@@ -2,15 +2,11 @@ import { Jimp } from "jimp";
 
 type JimpImage = {
   bitmap: { width: number; height: number; data: Buffer };
-  scan: (
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    cb: (x: number, y: number, idx: number) => void
-  ) => void;
   getBufferAsync?: (mime: string) => Promise<Buffer>;
-  getBuffer: (mime: string, cb: (err: unknown, buffer: Buffer) => void) => void;
+  getBuffer: (
+    mime: string,
+    cb?: (err: unknown, buffer: Buffer) => void
+  ) => Promise<Buffer> | Buffer | void;
 };
 
 function getJimpRead(): (rawBytes: Buffer) => Promise<JimpImage> {
@@ -27,6 +23,15 @@ async function getBuffer(image: JimpImage, mime: string): Promise<Buffer> {
   if (typeof image.getBufferAsync === "function") {
     return image.getBufferAsync(mime);
   }
+
+  // Jimp v1.x `getBuffer()` returns a Promise<Buffer>.
+  const direct = image.getBuffer(mime);
+  if (Buffer.isBuffer(direct)) return direct;
+  if (direct && typeof (direct as Promise<Buffer>).then === "function") {
+    return await (direct as Promise<Buffer>);
+  }
+
+  // Fallback for callback-style implementations.
   return await new Promise<Buffer>((resolve, reject) => {
     image.getBuffer(mime, (err, buffer) => {
       if (err) return reject(err);
@@ -39,34 +44,32 @@ export async function processImage(rawBytes: Buffer): Promise<Buffer> {
     const read = getJimpRead();
     const image = await read(rawBytes);
     
-    const width = image.bitmap.width;
-    const height = image.bitmap.height;
-    
     // Bit Depth Colors
     const LAND_R = 220, LAND_G = 236, LAND_B = 203; // #DCECCB
     const WATER_R = 74, WATER_G = 144, WATER_B = 226; // #4A90E2
     const FG_THRESHOLD = 100;
 
-    image.scan(0, 0, width, height, function (x: number, y: number, idx: number) {
-        const r = image.bitmap.data[idx];
-        const g = image.bitmap.data[idx + 1];
-        const b = image.bitmap.data[idx + 2];
+    const data = image.bitmap.data;
+    for (let idx = 0; idx < data.length; idx += 4) {
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
         const gray = (r + g + b) / 3;
 
         if (gray < FG_THRESHOLD) {
-            return;
+            continue;
         }
 
         if (gray < 240) {
-            image.bitmap.data[idx] = LAND_R;
-            image.bitmap.data[idx + 1] = LAND_G;
-            image.bitmap.data[idx + 2] = LAND_B;
+            data[idx] = LAND_R;
+            data[idx + 1] = LAND_G;
+            data[idx + 2] = LAND_B;
         } else {
-            image.bitmap.data[idx] = WATER_R;
-            image.bitmap.data[idx + 1] = WATER_G;
-            image.bitmap.data[idx + 2] = WATER_B;
+            data[idx] = WATER_R;
+            data[idx + 1] = WATER_G;
+            data[idx + 2] = WATER_B;
         }
-    });
+    }
 
     return await getBuffer(image, "image/png");
 }

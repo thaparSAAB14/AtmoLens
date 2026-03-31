@@ -12,7 +12,7 @@ export async function GET() {
         ]);
         return NextResponse.json({
             system: "AtmoLens",
-            version: "3.0.2 (Fetch Pipeline Fix)",
+            version: "3.0.3 (Cron Pipeline Stabilization)",
             status: "online",
             archive_count: archiveCount,
             map_types: mapTypes,

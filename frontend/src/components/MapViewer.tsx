@@ -132,6 +132,32 @@ export function MapViewer({ selectedType }: MapViewerProps) {
   }
 
   if (!currentMap) {
+    if (!hasAnyData) {
+      return (
+        <div className="flex items-center justify-center h-[500px] rounded-2xl bg-[var(--surface-container)]">
+          <div className="text-center px-6">
+            <p className="text-[var(--text-primary)] text-xl font-display font-semibold">
+              No maps indexed yet
+            </p>
+            <p className="text-[var(--text-muted)] text-sm mt-3">
+              We fetch new maps automatically every 30 minutes. If you just deployed, the
+              first sync may take a few minutes to appear.
+            </p>
+            <button
+              onClick={() => {
+                setLoading(true);
+                fetchMaps();
+              }}
+              className="mt-5 px-4 py-2 rounded-lg bg-[var(--accent-dim)] text-[var(--accent)] text-sm font-medium hover:bg-[var(--accent)]/15 transition-colors disabled:opacity-60"
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center justify-center h-[500px] rounded-2xl bg-[var(--surface-container)]">
         <div className="text-center">
@@ -140,7 +166,7 @@ export function MapViewer({ selectedType }: MapViewerProps) {
             {MAP_TYPE_LABELS[selectedType] || selectedType}
           </p>
           <p className="text-[var(--text-muted)] text-sm mt-3">
-            Maps are fetched automatically every 30 minutes
+            Try a different map type, or check back after the next update cycle.
           </p>
         </div>
       </div>

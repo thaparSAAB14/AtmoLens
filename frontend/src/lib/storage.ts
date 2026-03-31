@@ -124,13 +124,25 @@ export async function getMapTypes(): Promise<string[]> {
   return rows.map((r) => String((r as { map_type: unknown }).map_type));
 }
 
+export async function hasMapHash(hash: string): Promise<boolean> {
+  await initDb();
+  const sql = getDb();
+  const rows = await sql`SELECT 1 FROM maps WHERE hash = ${hash} LIMIT 1;`;
+  return rows.length > 0;
+}
+
 export async function storeMapMetadata(mapType: string, filename: string, blobUrl: string, originalUrl: string, timestamp: Date, hash: string) {
   await initDb();
   const sql = getDb();
   await sql`
     INSERT INTO maps (map_type, filename, blob_url, original_blob_url, timestamp, hash)
     VALUES (${mapType}, ${filename}, ${blobUrl}, ${originalUrl}, ${timestamp.toISOString()}, ${hash})
-    ON CONFLICT (hash) DO UPDATE SET blob_url = EXCLUDED.blob_url;
+    ON CONFLICT (hash) DO UPDATE SET
+      map_type = EXCLUDED.map_type,
+      filename = EXCLUDED.filename,
+      blob_url = EXCLUDED.blob_url,
+      original_blob_url = EXCLUDED.original_blob_url,
+      timestamp = EXCLUDED.timestamp;
   `;
 }
 

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { put } from '@vercel/blob';
-import { initDb, storeMapMetadata } from '@/lib/storage';
-import { processImage, convertOriginalToPng } from '@/lib/processor';
+import { hasMapHash, initDb, storeMapMetadata } from '@/lib/storage';
+import { processImage } from '@/lib/processor';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // Allow sufficient time for all 8 maps
@@ -18,47 +18,91 @@ const SOURCES: Record<string, string> = {
     "upper_850hpa": "https://weather.gc.ca/data/analysis/upr85_100.gif",
 };
 
+async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, {
+            cache: 'no-store',
+            signal: controller.signal,
+            headers: {
+                // Be polite + improve compatibility with some CDNs.
+                'User-Agent': 'AtmoLens/3.x (+https://vercel.com)',
+            },
+        });
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
 export async function GET() {
     try {
         await initDb(); // Ensure tables before writing
         const results = [];
         
         for (const [mapType, url] of Object.entries(SOURCES)) {
-            const res = await fetch(url, { cache: 'no-store' });
-            if (!res.ok) continue;
-            
-            const arrayBuffer = await res.arrayBuffer();
-            const rawBytes = Buffer.from(arrayBuffer);
-            
-            // Generate SHA-256 Hash
-            const fileHash = crypto.createHash('sha256').update(rawBytes).digest('hex');
-            
-            // TS Processor (Jimp)
-            const processedBytes = await processImage(rawBytes);
-            const originalPng = await convertOriginalToPng(rawBytes);
-            
-            const tsStr = new Date().toISOString().replace(/[:.]/g, '-');
-            const processedName = `atmolens/${mapType}/map_${tsStr}_enhanced.png`;
-            const originalName = `atmolens/${mapType}/map_${tsStr}_original.png`;
-            
-            // Vercel Blob
-            const processedBlob = await put(processedName, processedBytes, { access: 'public' });
-            const originalBlob = await put(originalName, originalPng, { access: 'public' });
-            
-            // Neon DB
-            await storeMapMetadata(
-                mapType,
-                processedName,
-                processedBlob.url,
-                originalBlob.url,
-                new Date(),
-                fileHash
-            );
-            
-            results.push({ mapType, processed: processedBlob.url });
+            const startedAt = Date.now();
+            try {
+                const res = await fetchWithTimeout(url, 25_000);
+                if (!res.ok) {
+                    results.push({ mapType, error: `Fetch failed: ${res.status} ${res.statusText}` });
+                    continue;
+                }
+
+                const arrayBuffer = await res.arrayBuffer();
+                const rawBytes = Buffer.from(arrayBuffer);
+
+                // Generate SHA-256 Hash (scoped by mapType to avoid cross-type collisions)
+                const fileHash = crypto
+                    .createHash('sha256')
+                    .update(mapType)
+                    .update(rawBytes)
+                    .digest('hex');
+
+                // Deduplicate early to keep cron fast and prevent wasted blob uploads.
+                if (await hasMapHash(fileHash)) {
+                    results.push({ mapType, skipped: true });
+                    continue;
+                }
+
+                // TS Processor (Jimp)
+                const processedBytes = await processImage(rawBytes);
+
+                const tsStr = new Date().toISOString().replace(/[:.]/g, '-');
+                const processedName = `atmolens/${mapType}/map_${tsStr}_enhanced.png`;
+                const originalName = `atmolens/${mapType}/map_${tsStr}_original.gif`;
+
+                // Vercel Blob
+                const [processedBlob, originalBlob] = await Promise.all([
+                    put(processedName, processedBytes, { access: 'public', contentType: 'image/png' }),
+                    put(originalName, rawBytes, { access: 'public', contentType: 'image/gif' }),
+                ]);
+
+                // Neon DB
+                await storeMapMetadata(
+                    mapType,
+                    processedName,
+                    processedBlob.url,
+                    originalBlob.url,
+                    new Date(),
+                    fileHash
+                );
+
+                results.push({
+                    mapType,
+                    processed: processedBlob.url,
+                    original: originalBlob.url,
+                    ms: Date.now() - startedAt,
+                });
+            } catch (e: unknown) {
+                const message = e instanceof Error ? e.message : "Unknown error";
+                results.push({ mapType, error: message });
+            }
         }
         
-        return NextResponse.json({ status: "cron completed", results });
+        const okCount = results.filter((r) => (r as { processed?: string; skipped?: boolean }).processed || (r as { skipped?: boolean }).skipped).length;
+        const status = okCount > 0 ? 200 : 500;
+        return NextResponse.json({ status: "cron completed", results }, { status });
     } catch (e: unknown) {
         const message = e instanceof Error ? e.message : "Unknown error";
         return NextResponse.json({ error: message }, { status: 500 });
