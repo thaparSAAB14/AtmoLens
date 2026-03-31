@@ -39,12 +39,16 @@ Notes:
 
 ## Overlay System (Geo-referenced)
 - Proxy route: `frontend/src/app/api/geomet/wms/route.ts`
+- Generated overlay route: `frontend/src/app/api/geomet/rdpa/route.ts`
 - Source endpoint: `https://geo.weather.gc.ca/geomet`
+- Source coverage API: `https://api.weather.gc.ca/collections/*/coverage`
 - Current overlay strategy: RDPA-first WMS layers (EPSG:4326)
   - `RDPA.6F_PR`
   - `RDPA.6P_PR`
   - `RDPA.24F_PR`
   - `RDPA.24P_PR`
+- RDPA overlays are now generated server-side from raw coverage grids and colorized in-house.
+- Frontend automatically falls back to GeoMet WMS if a generated overlay fails.
 - Proxy safeguards:
   - whitelist layer names
   - whitelist CRS and output format
@@ -91,10 +95,16 @@ Important behavior:
 
 3. Legal exposure check (2026-03-31)
 - Status: low to moderate, mitigated.
+- Reference: ECCC Data Servers End-use Licence v2.1 (September 2022).
 - Verified:
   - OGL Canada attribution present in runtime UI.
+  - ECCC Data Servers End-use Licence link and attribution added in runtime UI.
   - ECCC source identified.
   - Non-endorsement language included in footer.
+- Key obligations reflected in product copy:
+  - attribution required for reuse/derivatives
+  - non-endorsement language
+  - no use of Government names/crests/logos as branding
 - Mitigations added:
   - Removed runtime Google Fonts request from 404 component.
   - Normalized OGL text to clean ASCII to avoid encoding corruption.
@@ -109,7 +119,9 @@ Important behavior:
 - 2026-03-31: Introduced RDPA-first georeferenced overlays and hardened WMS proxy error handling.
 - 2026-03-31: Upgraded enhancer to adaptive multi-step pipeline and versioned processing hash.
 - 2026-03-31: Completed legal exposure audit and tightened attribution/compliance text.
+- 2026-03-31: Added own RDPA coverage renderer (`/api/geomet/rdpa`) to generate precipitation overlays from Weather Canada raw grid data.
+- 2026-03-31: Added generated-overlay to WMS fallback behavior and synchronized map viewport bbox rendering.
 
 ---
 **Last Updated:** 2026-03-31
-**Version:** 3.0.8 (Legal Audit + Context Refresh)
+**Version:** 3.0.9 (Own RDPA Coverage Renderer)

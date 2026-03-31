@@ -12,7 +12,7 @@ export async function GET() {
         ]);
         return NextResponse.json({
             system: "AtmoLens",
-            version: "3.0.8 (Legal Audit + Context Refresh)",
+            version: "3.0.9 (Own RDPA Coverage Renderer)",
             status: "online",
             archive_count: archiveCount,
             map_types: mapTypes,

@@ -26,7 +26,7 @@ export function Footer() {
             </span>
           </div>
           <p className="text-[var(--text-secondary)] text-xs text-center max-w-md">
-            Data source: Environment and Climate Change Canada (ECCC). Contains information licensed under the Open Government Licence - Canada. Not affiliated with or endorsed by the Government of Canada. See the{" "}
+            Data source: Environment and Climate Change Canada (ECCC). Contains information licensed under the Data Server End-use Licence of Environment and Climate Change Canada and the Open Government Licence - Canada. Not affiliated with or endorsed by the Government of Canada. See the{" "}
             <a
               href="https://eccc-msc.github.io/open-data/licence/readme_en/"
               target="_blank"

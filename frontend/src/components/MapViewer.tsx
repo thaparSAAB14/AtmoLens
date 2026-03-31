@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getLatestMaps, getImageUrl, MAP_TYPE_LABELS, type MapInfo } from "@/lib/api";
-import { GEOMET_ATTRIBUTION, GEOMET_LAYERS } from "@/lib/geomet";
+import { GEOMET_ATTRIBUTION, GEOMET_LAYERS, type GeoMetLayer } from "@/lib/geomet";
 import { formatTimestamp, formatTimestampLocal, timeAgo } from "@/lib/utils";
 import { Download, Maximize2, Minimize2 } from "lucide-react";
 
@@ -20,6 +20,7 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
   const [showOriginal, setShowOriginal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [overlayWarning, setOverlayWarning] = useState<string | null>(null);
+  const [generatedFallbackLayers, setGeneratedFallbackLayers] = useState<Set<string>>(new Set());
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchMaps = useCallback(async () => {
@@ -105,8 +106,26 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
   const geometBbox = "-175,10,-15,85"; // minLon,minLat,maxLon,maxLat (WMS 1.1.1 + EPSG:4326)
   const selectedGeoLayers = GEOMET_LAYERS.filter((layer) => selectedLayers.includes(layer.id));
 
+  const buildWmsOverlaySrc = useCallback((layer: GeoMetLayer) => {
+    const qs = new URLSearchParams({
+      service: "WMS",
+      version: layer.version ?? "1.1.1",
+      request: "GetMap",
+      layers: layer.layer,
+      styles: layer.style ?? "",
+      transparent: "true",
+      format: layer.format ?? "image/png",
+      srs: layer.srs ?? "EPSG:4326",
+      bbox: geometBbox,
+      width: "1400",
+      height: "900",
+    });
+    return `/api/geomet/wms?${qs.toString()}`;
+  }, [geometBbox]);
+
   useEffect(() => {
     setOverlayWarning(null);
+    setGeneratedFallbackLayers(new Set());
   }, [selectedType, selectedLayers.join("|"), wmsEnabled]);
 
   if (loading) {
@@ -287,32 +306,39 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
               />
               {canUseGeoMet &&
                 selectedGeoLayers.map((layer) => {
-                  const qs = new URLSearchParams({
-                    service: "WMS",
-                    version: layer.version ?? "1.1.1",
-                    request: "GetMap",
-                    layers: layer.layer,
-                    styles: layer.style ?? "",
-                    transparent: "true",
-                    format: layer.format ?? "image/png",
-                    srs: layer.srs ?? "EPSG:4326",
-                    bbox: geometBbox,
-                    width: "1400",
-                    height: "900",
-                  });
+                  const tryGeneratedOverlay =
+                    layer.source === "generated" &&
+                    !!layer.collectionId &&
+                    !generatedFallbackLayers.has(layer.id);
+                  const overlaySrc =
+                    tryGeneratedOverlay
+                      ? `/api/geomet/rdpa?collection=${encodeURIComponent(layer.collectionId!)}&width=1400&height=900&bbox=${encodeURIComponent(geometBbox)}`
+                      : buildWmsOverlaySrc(layer);
 
                   return (
                     <img
                       key={layer.id}
-                      src={`/api/geomet/wms?${qs.toString()}`}
+                      src={overlaySrc}
                       alt={`${layer.name} overlay`}
                       className="absolute inset-0 w-full h-full object-contain pointer-events-none"
                       style={{ opacity: layer.opacity ?? 0.6 }}
-                      onError={() =>
+                      onError={() => {
+                        if (tryGeneratedOverlay) {
+                          setGeneratedFallbackLayers((previous) => {
+                            if (previous.has(layer.id)) return previous;
+                            const next = new Set(previous);
+                            next.add(layer.id);
+                            return next;
+                          });
+                          setOverlayWarning(
+                            `${layer.name} generated overlay is temporarily unavailable. Falling back to GeoMet layer.`
+                          );
+                          return;
+                        }
                         setOverlayWarning(
                           "One or more weather overlays could not be loaded right now. Try toggling the layer or refreshing."
-                        )
-                      }
+                        );
+                      }}
                       draggable={false}
                     />
                   );
@@ -332,8 +358,9 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
         </div>
         {canUseGeoMet && selectedGeoLayers.length > 0 && (
           <div className="absolute right-3 bottom-3 max-w-[min(60ch,60%)] bg-[var(--surface)]/80 backdrop-blur-sm rounded-lg px-3 py-2">
+            <p className="text-[10px] text-[var(--text-secondary)] font-label">Overlay: {selectedGeoLayers.map((l) => l.name).join(", ")}</p>
             <p className="text-[10px] text-[var(--text-secondary)] font-label">
-              WMS: {selectedGeoLayers.map((l) => l.name).join(", ")}
+              Source: RDPA generated in-house {generatedFallbackLayers.size > 0 ? `(GeoMet fallback: ${generatedFallbackLayers.size})` : ""}
             </p>
             <p className="text-[10px] text-[var(--text-muted)]">{GEOMET_ATTRIBUTION}</p>
           </div>

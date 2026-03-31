@@ -20,18 +20,19 @@ The interface utilizes the bespoke **Bit Depth** design system, switching seamle
 - **🌑 Obsidian (Dark)**: A high-contrast, modern synoptic mode using #121213 with glowing data overlays.
 
 ## 🗺️ GeoMet WMS Integration (Current)
-AtmoLens maps now support **MSC GeoMet WMS overlays** directly in the Maps experience.
+AtmoLens maps now support **RDPA overlays generated in-house from Weather Canada coverage data**, with **MSC GeoMet WMS fallback** for resilience.
 
 - **Interactive overlays in Maps UI**: Layer toggles in the sidebar are wired to the map viewer.
 - **Current layers**:
   - `GDPS.ETA_PRMSL` (Sea-level pressure)
   - `GDPS.ETA_TT` (2m temperature)
   - `RDPA.24F_PR` (24h precipitation)
-- **Backend WMS proxy**: `/api/geomet/wms` validates and forwards `GetMap` requests to `https://geo.weather.gc.ca/geomet`.
+- **In-house RDPA renderer**: `/api/geomet/rdpa` fetches raw RDPA coverage from `https://api.weather.gc.ca/collections/*/coverage` and renders transparent PNG overlays server-side.
+- **Backend WMS proxy (fallback)**: `/api/geomet/wms` validates and forwards `GetMap` requests to `https://geo.weather.gc.ca/geomet`.
 - **Production enablement flags**:
   - `NEXT_PUBLIC_ENABLE_WMS=true` (enables WMS controls in Maps UI)
   - `ENABLE_GEOMET_WMS=true` (enables backend WMS proxy route)
-- **Geo-reference behavior**: Overlays are requested with EPSG:4326 + North America extent for alignment against surface analysis views.
+- **Geo-reference behavior**: RDPA overlays are rendered against North America extent; WMS fallback overlays are requested with EPSG:4326 + matching bounding box.
 - **Time-aware overlays**: When available, the current map timestamp is passed to WMS requests.
 - **Legal compliance**: ECCC attribution is rendered in-map:
   - *"Contains information licensed under the Open Government Licence – Canada."*
@@ -48,7 +49,7 @@ To run the full-stack Next.js app locally:
 - From the repository root: `vercel dev`
 
 ## 📜 Legal & Attribution
-"Contains information licensed under the Open Government Licence – Canada."
+"Contains information licensed under the Data Server End-use Licence of Environment and Climate Change Canada and the Open Government Licence - Canada."
 Processed meteorological data provided by **Environment and Climate Change Canada (ECCC)**.
 
 ---
