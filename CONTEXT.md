@@ -106,7 +106,7 @@ User Browser (Global CDN)
    - **Reasoning**: Vercel Python runtime limits (OpenCV binary size and TCP timeout) caused persistent 500 errors.
    - **Solution**: Replaced with `jimp` (Node.js) and `@neondatabase/serverless` (HTTP).
    - **Result**: "Backend Offline" error resolved; 300ms edge execution.
-   - **2026-03-31**: Normalized map API payloads (`image_url`/`original_url`) and improved Maps/Archive UX (errors, downloads, zoom). Added `/api/cron/cleanup` to match scheduled cron.
+   - **2026-03-31**: Normalized map API payloads (`image_url`/`original_url`) and improved Maps/Archive UX (errors, downloads, zoom). Added `/api/cron/cleanup` to match scheduled cron. Fixed `Jimp.read` binding so `/api/cron/fetch-maps` runs in production.
 
 ### API Client (`lib/api.ts`)
 - Same-domain requests to `/api/status`, `/api/maps/latest`, etc.
@@ -182,4 +182,4 @@ CREATE TABLE observer_notes (
 ---
 
 **Last Updated:** 2026-03-31
-**Version:** 3.0.1 (Maps/Archive UX + API Normalization)
+**Version:** 3.0.2 (Fetch Pipeline Fix)

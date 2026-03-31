@@ -14,11 +14,13 @@ type JimpImage = {
 };
 
 function getJimpRead(): (rawBytes: Buffer) => Promise<JimpImage> {
-  const read = (Jimp as unknown as { read?: unknown }).read;
+  const read = (Jimp as unknown as { read?: (rawBytes: Buffer) => Promise<JimpImage> })
+    .read;
   if (typeof read !== "function") {
     throw new Error("Jimp.read is unavailable");
   }
-  return read as (rawBytes: Buffer) => Promise<JimpImage>;
+  // Jimp.read relies on `this` (e.g. `this.fromBuffer`) so we must preserve context.
+  return (rawBytes: Buffer) => read.call(Jimp, rawBytes);
 }
 
 async function getBuffer(image: JimpImage, mime: string): Promise<Buffer> {

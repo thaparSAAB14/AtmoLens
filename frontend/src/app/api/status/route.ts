@@ -12,7 +12,7 @@ export async function GET() {
         ]);
         return NextResponse.json({
             system: "AtmoLens",
-            version: "3.0.1 (Maps/Archive UX + API Normalization)",
+            version: "3.0.2 (Fetch Pipeline Fix)",
             status: "online",
             archive_count: archiveCount,
             map_types: mapTypes,
