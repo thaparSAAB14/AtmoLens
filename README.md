@@ -1,7 +1,7 @@
 # ⚓ AtmoLens (Atmospheric Lens)
-**100% Vercel-Native | Bit-Depth Aesthetics | GIS Data Framework**
+**100% Vercel-Native | Bit-Depth Aesthetics | GeoMet WMS Overlays**
 
-AtmoLens is a high-fidelity meteorological restoration and enhancement platform that transforms grayscale synoptic charts into premium, color-coded atmospheric visualizations.
+AtmoLens is a meteorological restoration and enhancement platform that ingests Environment and Climate Change Canada (ECCC) synoptic charts, preserves originals, and publishes color-enhanced analysis maps with optional geo-referenced Weather Canada overlays.
 
 ## 🏗️ Architecture: Vercel Serverless Monorepo
 AtmoLens has been fully migrated to a **"One Domain, One Port"** serverless architecture on Vercel.
@@ -19,10 +19,24 @@ The interface utilizes the bespoke **Bit Depth** design system, switching seamle
 - **🗂️ Scrapbook (Light)**: Focused on historical, tactile analysis with #fdfbf0 background and tape-like accents.
 - **🌑 Obsidian (Dark)**: A high-contrast, modern synoptic mode using #121213 with glowing data overlays.
 
-## 🗺️ GIS Data Framework
-AtmoLens integrates the **MSC GeoMet WFS/WMS** framework for high-resolution vector pulling.
-- **Data Pulling**: High-fidelity weather overlays (MSLP, TT, Precipitation).
-- **Legal Compliance**: Mandatory ECCC attribution integrated into all data views.
+## 🗺️ GeoMet WMS Integration (Current)
+AtmoLens maps now support **MSC GeoMet WMS overlays** directly in the Maps experience.
+
+- **Interactive overlays in Maps UI**: Layer toggles in the sidebar are wired to the map viewer.
+- **Current layers**:
+  - `GDPS.ETA_PRMSL` (Sea-level pressure)
+  - `GDPS.ETA_TT` (2m temperature)
+  - `RDPA.24F_PR` (24h precipitation)
+- **Backend WMS proxy**: `/api/geomet/wms` validates and forwards `GetMap` requests to `https://geo.weather.gc.ca/geomet`.
+- **Production enablement flags**:
+  - `NEXT_PUBLIC_ENABLE_WMS=true` (enables WMS controls in Maps UI)
+  - `ENABLE_GEOMET_WMS=true` (enables backend WMS proxy route)
+- **Geo-reference behavior**: Overlays are requested with EPSG:4326 + North America extent for alignment against surface analysis views.
+- **Time-aware overlays**: When available, the current map timestamp is passed to WMS requests.
+- **Legal compliance**: ECCC attribution is rendered in-map:
+  - *"Contains information licensed under the Open Government Licence – Canada."*
+
+> Note: archive and storage pipelines remain unchanged; overlays are visual and do not alter stored source/archive files.
 
 ## 🚀 Getting Started (Local Development)
 To run the full-stack Next.js app locally:

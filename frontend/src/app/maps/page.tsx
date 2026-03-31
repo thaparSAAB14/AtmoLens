@@ -6,10 +6,12 @@ import { MapTypeSelector } from "@/components/MapTypeSelector";
 import { GisLayerSelector } from "@/components/GisLayerSelector";
 import { StatusBar } from "@/components/StatusBar";
 import MagnetLines from "@/components/MagnetLines";
+import { IS_WMS_UI_ENABLED } from "@/lib/geomet";
 
 export default function MapsPage() {
   const [selectedMapType, setSelectedMapType] = useState("surface_12z");
   const [selectedLayers, setSelectedLayers] = useState<string[]>([]);
+  const wmsEnabled = IS_WMS_UI_ENABLED;
 
   return (
     <div>
@@ -56,12 +58,20 @@ export default function MapsPage() {
               <MapTypeSelector selected={selectedMapType} onChange={setSelectedMapType} />
               
               <div className="border-t border-[var(--border)] pt-4 mt-4" />
-              <GisLayerSelector selected={selectedLayers} onChange={setSelectedLayers} />
+              <GisLayerSelector
+                selected={selectedLayers}
+                onChange={setSelectedLayers}
+                disabled={!wmsEnabled}
+              />
             </div>
           </aside>
 
           <main>
-            <MapViewer selectedType={selectedMapType} />
+            <MapViewer
+              selectedType={selectedMapType}
+              selectedLayers={selectedLayers}
+              wmsEnabled={wmsEnabled}
+            />
           </main>
         </div>
       </section>
