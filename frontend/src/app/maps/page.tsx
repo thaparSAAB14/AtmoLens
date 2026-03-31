@@ -6,7 +6,6 @@ import { MapViewer } from "@/components/MapViewer";
 import { MapTypeSelector } from "@/components/MapTypeSelector";
 import { GisLayerSelector } from "@/components/GisLayerSelector";
 import { StatusBar } from "@/components/StatusBar";
-import { Notebook } from "@/components/Notebook";
 
 const WarpShaderBackground = dynamic(
   () =>
@@ -55,9 +54,6 @@ export default function MapsPage() {
               <div className="border-t border-[var(--border)] pt-4 mt-4" />
               <GisLayerSelector selected={selectedLayers} onChange={setSelectedLayers} />
             </div>
-
-            {/* Next.js Sever Action Component */}
-            <Notebook />
           </aside>
 
           <main>

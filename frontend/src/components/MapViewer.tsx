@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getLatestMaps, getImageUrl, MAP_TYPE_LABELS, type MapInfo } from "@/lib/api";
-import { formatTimestamp, timeAgo } from "@/lib/utils";
-import { Download, ZoomIn, ZoomOut, Maximize2, Minimize2 } from "lucide-react";
+import { formatTimestamp, formatTimestampLocal, timeAgo } from "@/lib/utils";
+import { Download, Maximize2, Minimize2 } from "lucide-react";
 
 interface MapViewerProps {
   selectedType: string;
@@ -14,7 +14,6 @@ export function MapViewer({ selectedType }: MapViewerProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [zoom, setZoom] = useState(1);
   const [showOriginal, setShowOriginal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -94,6 +93,8 @@ export function MapViewer({ selectedType }: MapViewerProps) {
   const imageUrl = currentMap
     ? getImageUrl(isShowingOriginal ? currentMap.original_url! : currentMap.image_url)
     : null;
+  const utcTimestamp = currentMap?.timestamp ? formatTimestamp(currentMap.timestamp) : "";
+  const localTimestamp = currentMap?.timestamp ? formatTimestampLocal(currentMap.timestamp) : "";
 
   const hasAnyData = Object.keys(maps).length > 0;
 
@@ -216,25 +217,6 @@ export function MapViewer({ selectedType }: MapViewerProps) {
             {isShowingOriginal ? "Original" : "Enhanced"}
           </button>
 
-          {/* Zoom controls */}
-          <button
-            onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
-            className="p-1.5 rounded-lg bg-[var(--surface-container-high)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
-            title="Zoom out"
-          >
-            <ZoomOut size={16} />
-          </button>
-          <span className="text-[var(--text-muted)] text-xs font-label min-w-[3ch] text-center">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
-            className="p-1.5 rounded-lg bg-[var(--surface-container-high)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
-            title="Zoom in"
-          >
-            <ZoomIn size={16} />
-          </button>
-
           {/* Fullscreen */}
           <button
             onClick={toggleFullscreen}
@@ -270,16 +252,17 @@ export function MapViewer({ selectedType }: MapViewerProps) {
         className="map-container relative rounded-2xl overflow-hidden bg-[var(--surface-container)] glow-md"
       >
         <div
-          className={`overflow-auto scrollbar-thin ${
-            isFullscreen ? "max-h-screen" : "max-h-[600px]"
+          className={`flex items-center justify-center w-full ${
+            isFullscreen
+              ? "h-screen"
+              : "h-[70vh] max-h-[760px] min-h-[360px]"
           }`}
         >
           {imageUrl && (
             <img
               src={imageUrl}
               alt={MAP_TYPE_LABELS[selectedType] || selectedType}
-              className="block max-w-none"
-              style={{ width: `${zoom * 100}%` }}
+              className="w-full h-full object-contain"
               draggable={false}
             />
           )}
@@ -288,7 +271,10 @@ export function MapViewer({ selectedType }: MapViewerProps) {
         {/* Timestamp overlay */}
         <div className="absolute bottom-3 left-3 bg-[var(--surface)]/80 backdrop-blur-sm rounded-lg px-3 py-1.5">
           <p className="text-[var(--text-secondary)] text-xs font-label">
-            {currentMap.timestamp ? formatTimestamp(currentMap.timestamp) : ""}
+            Local: {localTimestamp}
+          </p>
+          <p className="text-[var(--text-muted)] text-xs font-label">
+            UTC: {utcTimestamp}
           </p>
         </div>
       </div>

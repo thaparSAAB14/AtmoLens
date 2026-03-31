@@ -22,6 +22,21 @@ export function formatTimestamp(iso: string): string {
 }
 
 /**
+ * Format an ISO timestamp in the user's local time zone.
+ */
+export function formatTimestampLocal(iso: string): string {
+  const date = new Date(iso);
+  return date.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+}
+
+/**
  * Get a relative time string (e.g., "5 minutes ago").
  */
 export function timeAgo(iso: string): string {

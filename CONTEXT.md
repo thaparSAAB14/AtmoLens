@@ -116,6 +116,7 @@ User Browser (Global CDN)
    - **Solution**: Replaced with `jimp` (Node.js) and `@neondatabase/serverless` (HTTP).
    - **Result**: "Backend Offline" error resolved; 300ms edge execution.
    - **2026-03-30**: Normalized map API payloads (`image_url`/`original_url`) and improved Maps/Archive UX (errors, downloads, zoom). Added `/api/cron/cleanup` to match scheduled cron. Fixed `Jimp.read` binding and `getBuffer()` Promise handling so `/api/cron/fetch-maps` completes in production. Added early SHA-256 dedupe, stored original GIF, and introduced `/api/blob` for private Blob stores.
+   - **2026-03-30**: Maps UI now fits the full image (no scroll), shows local time conversion alongside UTC, and removes the Notebook panel from `/maps`.
 
 ### API Client (`lib/api.ts`)
 - Same-domain requests to `/api/status`, `/api/maps/latest`, etc.
@@ -192,4 +193,4 @@ CREATE TABLE observer_notes (
 ---
 
 **Last Updated:** 2026-03-30
-**Version:** 3.0.4 (Blob Proxy + Upper Air URLs)
+**Version:** 3.0.5 (Maps Fit + Local Time)

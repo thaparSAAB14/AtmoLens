@@ -12,7 +12,7 @@ export async function GET() {
         ]);
         return NextResponse.json({
             system: "AtmoLens",
-            version: "3.0.4 (Blob Proxy + Upper Air URLs)",
+            version: "3.0.5 (Maps Fit + Local Time)",
             status: "online",
             archive_count: archiveCount,
             map_types: mapTypes,
