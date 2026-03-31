@@ -1,16 +1,16 @@
-import { ArrowRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
+ï»¿import { ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 interface Error404Props {
-  postcardImage?: string
-  postcardAlt?: string
-  curvedTextTop?: string
-  curvedTextBottom?: string
-  heading?: string
-  subtext?: string
-  backButtonLabel?: string
-  backButtonHref?: string
+  postcardImage?: string;
+  postcardAlt?: string;
+  curvedTextTop?: string;
+  curvedTextBottom?: string;
+  heading?: string;
+  subtext?: string;
+  backButtonLabel?: string;
+  backButtonHref?: string;
 }
 
 export function Error404({
@@ -33,6 +33,7 @@ export function Error404({
         href="https://fonts.googleapis.com/css2?family=Doto:wght@100..900&display=swap"
         rel="stylesheet"
       />
+
       <div className="flex flex-col items-center">
         <div className="relative mb-16">
           <svg
@@ -52,7 +53,7 @@ export function Error404({
               style={{ fontWeight: 400, letterSpacing: "0.15em" }}
             >
               <textPath href="#circlePath" startOffset="0%">
-                {curvedTextTop} • {curvedTextBottom} •
+                {curvedTextTop} - {curvedTextBottom} -
               </textPath>
             </text>
           </svg>
@@ -113,5 +114,5 @@ export function Error404({
         </div>
       </div>
     </div>
-  )
+  );
 }
