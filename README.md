@@ -12,6 +12,7 @@ AtmoLens has been fully migrated to a **"One Domain, One Port"** serverless arch
 - **Automation**: Automated ECCC synoptic pulls every 30 minutes via **Vercel Cron Jobs**.
 - **Deduplication**: Per-map SHA-256; unchanged maps are skipped to keep cron fast.
 - **Formats**: Enhanced maps stored as PNG; originals stored as GIF.
+- **Blob access**: `BLOB_ACCESS=private` serves images through `/api/blob`; set `BLOB_ACCESS=public` to use direct blob URLs.
 
 ## 🎨 Design System: "Bit Depth"
 The interface utilizes the bespoke **Bit Depth** design system, switching seamlessly between:

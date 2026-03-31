@@ -12,11 +12,14 @@ const SOURCES: Record<string, string> = {
     "surface_06z": "https://weather.gc.ca/data/analysis/jac06_100.gif",
     "surface_12z": "https://weather.gc.ca/data/analysis/jac12_100.gif",
     "surface_18z": "https://weather.gc.ca/data/analysis/jac18_100.gif",
-    "upper_250hpa": "https://weather.gc.ca/data/analysis/upr25_100.gif",
-    "upper_500hpa": "https://weather.gc.ca/data/analysis/upr50_100.gif",
-    "upper_700hpa": "https://weather.gc.ca/data/analysis/upr70_100.gif",
-    "upper_850hpa": "https://weather.gc.ca/data/analysis/upr85_100.gif",
+    "upper_250hpa": "https://weather.gc.ca/data/analysis/sah_100.gif",
+    "upper_500hpa": "https://weather.gc.ca/data/analysis/sai_100.gif",
+    "upper_700hpa": "https://weather.gc.ca/data/analysis/saj_100.gif",
+    "upper_850hpa": "https://weather.gc.ca/data/analysis/saa_100.gif",
 };
+
+const BLOB_ACCESS: "public" | "private" =
+    process.env.BLOB_ACCESS === "public" ? "public" : "private";
 
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
     const controller = new AbortController();
@@ -74,8 +77,8 @@ export async function GET() {
 
                 // Vercel Blob
                 const [processedBlob, originalBlob] = await Promise.all([
-                    put(processedName, processedBytes, { access: 'public', contentType: 'image/png' }),
-                    put(originalName, rawBytes, { access: 'public', contentType: 'image/gif' }),
+                    put(processedName, processedBytes, { access: BLOB_ACCESS, contentType: 'image/png' }),
+                    put(originalName, rawBytes, { access: BLOB_ACCESS, contentType: 'image/gif' }),
                 ]);
 
                 // Neon DB

@@ -8,6 +8,8 @@ export type MapRow = {
   timestamp: string | Date;
 };
 
+const USE_BLOB_PROXY = (process.env.BLOB_ACCESS ?? "private") !== "public";
+
 function basename(pathOrUrl: string): string {
   try {
     const url = new URL(pathOrUrl);
@@ -15,6 +17,21 @@ function basename(pathOrUrl: string): string {
   } catch {
     return pathOrUrl.split("/").pop() || pathOrUrl;
   }
+}
+
+function toBlobPath(pathOrUrl: string): string {
+  try {
+    const url = new URL(pathOrUrl);
+    return url.pathname.replace(/^\/+/, "");
+  } catch {
+    return pathOrUrl.replace(/^\/+/, "");
+  }
+}
+
+function toClientUrl(pathOrUrl: string): string {
+  if (!USE_BLOB_PROXY) return pathOrUrl;
+  const path = toBlobPath(pathOrUrl);
+  return `/api/blob?path=${encodeURIComponent(path)}`;
 }
 
 function toIsoString(value: string | Date): string {
@@ -30,8 +47,8 @@ export function mapRowToMapInfo(row: MapRow): MapInfo {
     original_filename: originalBase ? `${row.map_type}_${originalBase}` : undefined,
     timestamp: toIsoString(row.timestamp),
     map_type: row.map_type,
-    image_url: row.blob_url,
-    original_url: row.original_blob_url ?? undefined,
+    image_url: toClientUrl(row.blob_url || row.filename),
+    original_url: row.original_blob_url ? toClientUrl(row.original_blob_url) : undefined,
   };
 }
 

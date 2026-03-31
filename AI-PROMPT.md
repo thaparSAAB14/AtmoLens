@@ -48,6 +48,7 @@ This project is worked on by various LLMs across different platforms. To maintai
 - **Attribution Required**: All maps MUST display: *"Contains information licensed under the Open Government Licence – Canada."*
 - **Offline-First**: Focus on analyzing JSX/CSS and TS logic directly without browser access.
 - **Neon Driver**: Always use `neon(process.env.POSTGRES_URL)` via `@neondatabase/serverless`.
+- **Blob Access**: `BLOB_ACCESS=private` uses `/api/blob` proxy; `BLOB_ACCESS=public` uses direct blob URLs.
 
 ## File Structure
 
@@ -73,6 +74,7 @@ atmolens/
 - **`src/lib/storage.ts`**: Database interface. Uses `initDb()` on each route entry for schema safety.
 - **`src/lib/processor.ts`**: Jimp pixel scanning pipeline.
 - **`src/app/api/cron/fetch-maps/route.ts`**: Core fetch/process/upload loop.
+- **`src/app/api/blob/route.ts`**: Proxy for private Blob stores.
 - **`src/components/StatusBar.tsx`**: Health indicator with manual **Force Sync** button (local development only).
 
 ## Deployment Checklist

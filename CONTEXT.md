@@ -49,6 +49,8 @@ Jimp Pixel Processing (TS)
     ↓
 Vercel Blob Storage
     ↓
+Blob Proxy (if private store)
+    ↓
 Neon Postgres Metadata Update
     ↓
 Next.js Frontend (Revalidate /maps)
@@ -64,6 +66,7 @@ User Browser (Global CDN)
 - Uses `crypto` for SHA-256 deduplication.
 - Skips processing/upload when a hash already exists in Postgres.
 - Stores originals as GIF (no GIF→PNG conversion) to keep the cron fast.
+- Uses `BLOB_ACCESS` (public/private) for Blob writes.
 - **Image Pipeline (`src/lib/processor.ts`):** 
   - Uses `Jimp` for lightweight, dependency-free Node.js image manipulation.
   - Scans pixels sequentially: 
@@ -83,6 +86,10 @@ User Browser (Global CDN)
 ### 4. Force Sync
 - Integrated into `StatusBar.tsx`.
 - In local development, allows manually triggering `/api/cron/fetch-maps` to populate the database instantly.
+
+### 5. Blob Proxy (`/api/blob`)
+- Provides authenticated access to private Blob stores.
+- `MapInfo.image_url` / `original_url` is routed through `/api/blob?path=...` when `BLOB_ACCESS` is not `public`.
 
 ## Frontend Architecture
 
@@ -108,7 +115,7 @@ User Browser (Global CDN)
    - **Reasoning**: Vercel Python runtime limits (OpenCV binary size and TCP timeout) caused persistent 500 errors.
    - **Solution**: Replaced with `jimp` (Node.js) and `@neondatabase/serverless` (HTTP).
    - **Result**: "Backend Offline" error resolved; 300ms edge execution.
-   - **2026-03-30**: Normalized map API payloads (`image_url`/`original_url`) and improved Maps/Archive UX (errors, downloads, zoom). Added `/api/cron/cleanup` to match scheduled cron. Fixed `Jimp.read` binding and `getBuffer()` Promise handling so `/api/cron/fetch-maps` completes in production. Added early SHA-256 dedupe and stored original GIF to keep the cron fast.
+   - **2026-03-30**: Normalized map API payloads (`image_url`/`original_url`) and improved Maps/Archive UX (errors, downloads, zoom). Added `/api/cron/cleanup` to match scheduled cron. Fixed `Jimp.read` binding and `getBuffer()` Promise handling so `/api/cron/fetch-maps` completes in production. Added early SHA-256 dedupe, stored original GIF, and introduced `/api/blob` for private Blob stores.
 
 ### API Client (`lib/api.ts`)
 - Same-domain requests to `/api/status`, `/api/maps/latest`, etc.
@@ -178,10 +185,11 @@ CREATE TABLE observer_notes (
 - **Note**: No persistent TCP connections; stateless edge execution.
 
 ### 3. Vercel Blob
-- **Method**: `put(filename, buffer, { access: 'public' })`.
+- **Method**: `put(filename, buffer, { access: BLOB_ACCESS })`.
 - **Token**: `BLOB_READ_WRITE_TOKEN`.
+- **Access**: `BLOB_ACCESS=private` uses `/api/blob` proxy (default); set `BLOB_ACCESS=public` to serve blob URLs directly.
 
 ---
 
 **Last Updated:** 2026-03-30
-**Version:** 3.0.3 (Cron Pipeline Stabilization)
+**Version:** 3.0.4 (Blob Proxy + Upper Air URLs)

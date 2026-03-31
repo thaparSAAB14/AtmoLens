@@ -12,7 +12,7 @@ export async function GET() {
         ]);
         return NextResponse.json({
             system: "AtmoLens",
-            version: "3.0.3 (Cron Pipeline Stabilization)",
+            version: "3.0.4 (Blob Proxy + Upper Air URLs)",
             status: "online",
             archive_count: archiveCount,
             map_types: mapTypes,
