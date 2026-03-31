@@ -43,7 +43,7 @@ This project is worked on by various LLMs across different platforms. To maintai
 ## Important Constraints
 
 - **NO PYTHON BACKEND**: The project is entirely Next.js. Do not re-introduce a Python API service.
-- **NO-FLY ZONE**: DO NOT modify `/frontend/src/app/about` - it is a finalized narrative asset.
+- **ABOUT PAGE SCOPE**: Keep `/frontend/src/app/about` structurally stable; limit to copy/content and light non-structural updates unless explicitly requested.
 - **Visual Focus**: High-contrast themes (Scrapbook #fdfbf0, Obsidian #121213).
 - **Attribution Required**: All maps MUST display: *"Contains information licensed under the Open Government Licence – Canada."*
 - **Offline-First**: Focus on analyzing JSX/CSS and TS logic directly without browser access.

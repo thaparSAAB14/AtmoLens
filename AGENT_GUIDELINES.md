@@ -6,7 +6,7 @@
 ### 🚨 CRITICAL CONSTRAINTS (Read First)
 1. **NO BROWSER ACCESS**: Do **NOT** ask the user for "Browser Access" to verify moving parts. Analyzing the JSX/CSS and TS logic directly is the only way to work in this environment.
 2. **BACKEND (100% NATIVE)**: The backend is now integrated into **Next.js API Routes** (`src/app/api/*`). Port 8001 is obsolete. All features must assume the data pipeline (Neon HTTP and Vercel Blob) is handled entirely within Node.js.
-3. **NO-FLY ZONE**: **DO NOT MODIFY** or touch `frontend/src/app/about`. It is a finalized storytelling asset.
+3. **ABOUT PAGE SCOPE**: Keep `frontend/src/app/about` layout stable; only content/copy and small non-structural updates are allowed unless explicitly requested.
 4. **LEGAL OBLIGATION**: Every page displaying weather data **MUST** include the following attribution in the footer: *"Contains information licensed under the Open Government Licence – Canada."*
 
 ---

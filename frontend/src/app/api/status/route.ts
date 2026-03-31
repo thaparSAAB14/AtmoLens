@@ -12,7 +12,7 @@ export async function GET() {
         ]);
         return NextResponse.json({
             system: "AtmoLens",
-            version: "3.0.9 (Own RDPA Coverage Renderer)",
+            version: "3.1.0 (Herbie GDPS Pipeline Integration)",
             status: "online",
             archive_count: archiveCount,
             map_types: mapTypes,

@@ -40,6 +40,8 @@ Notes:
 ## Overlay System (Geo-referenced)
 - Proxy route: `frontend/src/app/api/geomet/wms/route.ts`
 - Generated overlay route: `frontend/src/app/api/geomet/rdpa/route.ts`
+- Herbie overlay route: `frontend/src/app/api/herbie/gdps-t2m/route.ts`
+- Herbie status route: `frontend/src/app/api/herbie/status/route.ts`
 - Source endpoint: `https://geo.weather.gc.ca/geomet`
 - Source coverage API: `https://api.weather.gc.ca/collections/*/coverage`
 - Current overlay strategy: RDPA-first WMS layers (EPSG:4326)
@@ -47,6 +49,13 @@ Notes:
   - `RDPA.6P_PR`
   - `RDPA.24F_PR`
   - `RDPA.24P_PR`
+- Optional model guidance layer: Herbie-generated GDPS 2m temperature (`TMP/TGL_2`).
+- Herbie deterministic config (no implicit defaults):
+  - model=`gdps`
+  - product=`15km/grib2/lat_lon`
+  - variable=`TMP`
+  - level=`TGL_2`
+  - fxx=`0`
 - RDPA overlays are now generated server-side from raw coverage grids and colorized in-house.
 - Frontend automatically falls back to GeoMet WMS if a generated overlay fails.
 - Proxy safeguards:
@@ -111,6 +120,8 @@ Important behavior:
 - Open items to monitor:
   - Decommission notice for legacy analysis products by end of 2026.
   - Optional: replace external Unsplash image with first-party asset to reduce third-party dependency.
+  - Herbie pipeline outputs are optional artifacts (not generated inside Vercel runtime).
+  - Python runtime + eccodes availability is required wherever Herbie pipeline is executed.
 
 ## Historical Decision Log
 - 2026-03-30: Pivoted from Python/OpenCV backend to 100% Next.js full-stack.
@@ -121,7 +132,8 @@ Important behavior:
 - 2026-03-31: Completed legal exposure audit and tightened attribution/compliance text.
 - 2026-03-31: Added own RDPA coverage renderer (`/api/geomet/rdpa`) to generate precipitation overlays from Weather Canada raw grid data.
 - 2026-03-31: Added generated-overlay to WMS fallback behavior and synchronized map viewport bbox rendering.
+- 2026-03-31: Integrated Herbie deterministic GDPS pipeline (`pipelines/herbie`) and exposed overlay/status routes in the web app.
 
 ---
 **Last Updated:** 2026-03-31
-**Version:** 3.0.9 (Own RDPA Coverage Renderer)
+**Version:** 3.1.0 (Herbie GDPS Pipeline Integration)

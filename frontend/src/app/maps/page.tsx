@@ -43,7 +43,7 @@ export default function MapsPage() {
           Live <span className="gradient-text">Maps</span>
         </h1>
         <p className="text-[var(--text-secondary)] text-sm mt-2">
-          Color-enhanced ECCC synoptic maps, with quick toggles, downloads, and local time readouts.
+          Color-enhanced ECCC synoptic maps with RDPA overlays plus optional Herbie-generated GDPS guidance.
         </p>
       </div>
 
@@ -61,7 +61,7 @@ export default function MapsPage() {
               <GisLayerSelector
                 selected={selectedLayers}
                 onChange={setSelectedLayers}
-                disabled={!wmsEnabled}
+                wmsEnabled={wmsEnabled}
               />
             </div>
           </aside>

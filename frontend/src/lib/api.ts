@@ -35,6 +35,19 @@ export interface SchedulerStatus {
   fetch_interval_minutes: number;
 }
 
+export interface HerbiePipelineStatus {
+  pipeline: string;
+  status: "ready" | "missing" | "error";
+  generated_at_utc: string | null;
+  model: string;
+  product: string;
+  variable: string;
+  level: string;
+  run_utc: string | null;
+  fxx: number;
+  details?: string;
+}
+
 export interface SystemStatus {
   system: string;
   version: string;
@@ -58,6 +71,10 @@ export function getImageUrl(path: string): string {
 
 export async function getStatus(): Promise<SystemStatus> {
   return fetchJSON<SystemStatus>("/api/status");
+}
+
+export async function getHerbieStatus(): Promise<HerbiePipelineStatus> {
+  return fetchJSON<HerbiePipelineStatus>("/api/herbie/status");
 }
 
 export async function getLatestMaps(): Promise<{ maps: Record<string, MapInfo> }> {

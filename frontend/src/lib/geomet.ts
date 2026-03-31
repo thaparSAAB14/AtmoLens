@@ -3,7 +3,8 @@ export interface GeoMetLayer {
   name: string;
   layer: string;
   collectionId?: string;
-  source?: "generated" | "wms";
+  source?: "generated" | "wms" | "herbie";
+  url?: string;
   description: string;
   version?: "1.1.1" | "1.3.0";
   srs?: string;
@@ -61,12 +62,23 @@ export const GEOMET_LAYERS: GeoMetLayer[] = [
     srs: "EPSG:4326",
     opacity: 0.42,
   },
+  {
+    id: "herbie_gdps_t2m",
+    name: "GDPS 2m Temperature (Herbie)",
+    layer: "HERBIE.GDPS.T2M",
+    source: "herbie",
+    url: "/api/herbie/gdps-t2m",
+    description: "Deterministic GDPS 2m temperature overlay generated from Herbie pipeline output.",
+    opacity: 0.5,
+  },
 ];
 
 export const GEOMET_ATTRIBUTION =
   "Contains information licensed under the Data Server End-use Licence of Environment and Climate Change Canada and the Open Government Licence - Canada. Source: Environment and Climate Change Canada (ECCC).";
 
-export const GEOMET_WMS_LAYER_NAMES = new Set(GEOMET_LAYERS.map((layer) => layer.layer));
+export const GEOMET_WMS_LAYER_NAMES = new Set(
+  GEOMET_LAYERS.filter((layer) => layer.source !== "herbie").map((layer) => layer.layer)
+);
 export const RDPA_COLLECTION_IDS = new Set(
   GEOMET_LAYERS.map((layer) => layer.collectionId).filter((value): value is string => Boolean(value))
 );

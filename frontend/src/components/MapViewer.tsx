@@ -102,10 +102,13 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
   const localTimestamp = currentMap?.timestamp ? formatTimestampLocal(currentMap.timestamp) : "";
 
   const hasAnyData = Object.keys(maps).length > 0;
-  const canUseGeoMet = wmsEnabled && selectedType.startsWith("surface_");
+  const canUseGeoMet = selectedType.startsWith("surface_");
   const geometBbox = "-175,10,-15,85"; // minLon,minLat,maxLon,maxLat (WMS 1.1.1 + EPSG:4326)
   const selectedLayersKey = selectedLayers.join("|");
-  const selectedGeoLayers = GEOMET_LAYERS.filter((layer) => selectedLayers.includes(layer.id));
+  const selectedGeoLayers = GEOMET_LAYERS.filter(
+    (layer) =>
+      selectedLayers.includes(layer.id) && (layer.source === "herbie" || wmsEnabled)
+  );
 
   const buildWmsOverlaySrc = useCallback((layer: GeoMetLayer) => {
     const qs = new URLSearchParams({
@@ -311,9 +314,14 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
                     layer.source === "generated" &&
                     !!layer.collectionId &&
                     !generatedFallbackLayers.has(layer.id);
+                  const isHerbieOverlay = layer.source === "herbie";
                   const overlaySrc =
                     tryGeneratedOverlay
                       ? `/api/geomet/rdpa?collection=${encodeURIComponent(layer.collectionId!)}&width=1400&height=900&bbox=${encodeURIComponent(geometBbox)}`
+                      : isHerbieOverlay
+                      ? `${layer.url ?? "/api/herbie/gdps-t2m"}?v=${encodeURIComponent(
+                          currentMap?.timestamp ?? ""
+                        )}`
                       : buildWmsOverlaySrc(layer);
 
                   return (
@@ -333,6 +341,12 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
                           });
                           setOverlayWarning(
                             `${layer.name} generated overlay is temporarily unavailable. Falling back to GeoMet layer.`
+                          );
+                          return;
+                        }
+                        if (isHerbieOverlay) {
+                          setOverlayWarning(
+                            "Herbie overlay is not ready yet. Run the Herbie pipeline to refresh GDPS output."
                           );
                           return;
                         }
@@ -361,7 +375,11 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
           <div className="absolute right-3 bottom-3 max-w-[min(60ch,60%)] bg-[var(--surface)]/80 backdrop-blur-sm rounded-lg px-3 py-2">
             <p className="text-[10px] text-[var(--text-secondary)] font-label">Overlay: {selectedGeoLayers.map((l) => l.name).join(", ")}</p>
             <p className="text-[10px] text-[var(--text-secondary)] font-label">
-              Source: RDPA generated in-house {generatedFallbackLayers.size > 0 ? `(GeoMet fallback: ${generatedFallbackLayers.size})` : ""}
+              Source:{" "}
+              {selectedGeoLayers.some((l) => l.source === "herbie")
+                ? "Herbie (GDPS) + GeoMet"
+                : "RDPA generated in-house"}
+              {generatedFallbackLayers.size > 0 ? ` (GeoMet fallback: ${generatedFallbackLayers.size})` : ""}
             </p>
             <p className="text-[10px] text-[var(--text-muted)]">{GEOMET_ATTRIBUTION}</p>
           </div>

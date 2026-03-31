@@ -1,0 +1,12 @@
+{
+  "pipeline": "herbie-gdps-t2m",
+  "status": "missing",
+  "generated_at_utc": null,
+  "model": "gdps",
+  "product": "15km/grib2/lat_lon",
+  "variable": "TMP",
+  "level": "TGL_2",
+  "run_utc": null,
+  "fxx": 0,
+  "details": "No generated Herbie artifact yet. Run the Herbie pipeline script."
+}
