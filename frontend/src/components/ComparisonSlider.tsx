@@ -79,17 +79,13 @@ export function ComparisonSlider({
 
         {/* Original (top layer, clipped) */}
         <div
-          className="absolute inset-0 overflow-hidden"
-          style={{ width: `${position}%` }}
+          className="absolute inset-0"
+          style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
         >
           <img
             src={originalUrl}
             alt="Original map"
             className="w-full h-full object-cover"
-            style={{
-              width: containerRef.current?.offsetWidth || "100%",
-              maxWidth: "none",
-            }}
             draggable={false}
           />
         </div>

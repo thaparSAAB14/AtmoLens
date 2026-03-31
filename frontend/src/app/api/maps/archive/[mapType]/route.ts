@@ -1,14 +1,21 @@
 import { NextResponse } from "next/server";
 import { getArchive } from "@/lib/storage";
+import { mapRowToArchiveEntry, type MapRow } from "@/lib/mapSerializers";
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request, { params }: { params: Promise<{ mapType: string }> }) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ mapType: string }> }
+) {
     try {
         const p = await params;
-        const archive = await getArchive(p.mapType);
+        const archive = (await getArchive(p.mapType)).map((row) =>
+          mapRowToArchiveEntry(row as MapRow)
+        );
         return NextResponse.json({ archive, count: archive.length });
-    } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Unknown error";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

@@ -17,7 +17,7 @@ function HandWrittenTitle({
             pathLength: 1,
             opacity: 1,
             transition: {
-                pathLength: { duration: 2.5, ease: [0.43, 0.13, 0.23, 0.96] as any },
+                pathLength: { duration: 2.5, ease: [0.43, 0.13, 0.23, 0.96] as [number, number, number, number] },
                 opacity: { duration: 0.5 },
             },
         },

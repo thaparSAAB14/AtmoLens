@@ -16,7 +16,7 @@ AtmoLens has been refactored into a **100% Next.js Full-Stack Architecture**. Th
 │  VERCEL (Unified Full-Stack)           │
 ├─────────────────────────────────────────┤
 │                                         │
-│  Frontend & API (Next.js 15)           │
+│  Frontend & API (Next.js 16)           │
 │  - React 19, TypeScript, Tailwind 4    │
 │  - Native API Routes (@/app/api/*)     │
 │  - Server Actions (@/app/actions/*)    │
@@ -106,6 +106,7 @@ User Browser (Global CDN)
    - **Reasoning**: Vercel Python runtime limits (OpenCV binary size and TCP timeout) caused persistent 500 errors.
    - **Solution**: Replaced with `jimp` (Node.js) and `@neondatabase/serverless` (HTTP).
    - **Result**: "Backend Offline" error resolved; 300ms edge execution.
+   - **2026-03-31**: Normalized map API payloads (`image_url`/`original_url`) and improved Maps/Archive UX (errors, downloads, zoom). Added `/api/cron/cleanup` to match scheduled cron.
 
 ### API Client (`lib/api.ts`)
 - Same-domain requests to `/api/status`, `/api/maps/latest`, etc.
@@ -147,6 +148,10 @@ CREATE TABLE observer_notes (
     {
       "path": "/api/cron/fetch-maps",
       "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/cleanup",
+      "schedule": "0 0 * * *"
     }
   ]
 }
@@ -176,5 +181,5 @@ CREATE TABLE observer_notes (
 
 ---
 
-**Last Updated:** 2026-03-30
-**Version:** 3.0.0 (Next.js Full-Stack Pivot)
+**Last Updated:** 2026-03-31
+**Version:** 3.0.1 (Maps/Archive UX + API Normalization)

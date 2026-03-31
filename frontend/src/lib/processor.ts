@@ -1,8 +1,41 @@
-import { Jimp } from 'jimp';
+import { Jimp } from "jimp";
+
+type JimpImage = {
+  bitmap: { width: number; height: number; data: Buffer };
+  scan: (
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    cb: (x: number, y: number, idx: number) => void
+  ) => void;
+  getBufferAsync?: (mime: string) => Promise<Buffer>;
+  getBuffer: (mime: string, cb: (err: unknown, buffer: Buffer) => void) => void;
+};
+
+function getJimpRead(): (rawBytes: Buffer) => Promise<JimpImage> {
+  const read = (Jimp as unknown as { read?: unknown }).read;
+  if (typeof read !== "function") {
+    throw new Error("Jimp.read is unavailable");
+  }
+  return read as (rawBytes: Buffer) => Promise<JimpImage>;
+}
+
+async function getBuffer(image: JimpImage, mime: string): Promise<Buffer> {
+  if (typeof image.getBufferAsync === "function") {
+    return image.getBufferAsync(mime);
+  }
+  return await new Promise<Buffer>((resolve, reject) => {
+    image.getBuffer(mime, (err, buffer) => {
+      if (err) return reject(err);
+      resolve(buffer);
+    });
+  });
+}
 
 export async function processImage(rawBytes: Buffer): Promise<Buffer> {
-    const jimpReader = typeof Jimp.read === 'function' ? Jimp.read : (Jimp as any).read;
-    const image = await jimpReader(rawBytes);
+    const read = getJimpRead();
+    const image = await read(rawBytes);
     
     const width = image.bitmap.width;
     const height = image.bitmap.height;
@@ -12,7 +45,7 @@ export async function processImage(rawBytes: Buffer): Promise<Buffer> {
     const WATER_R = 74, WATER_G = 144, WATER_B = 226; // #4A90E2
     const FG_THRESHOLD = 100;
 
-    image.scan(0, 0, width, height, function(x: number, y: number, idx: number) {
+    image.scan(0, 0, width, height, function (x: number, y: number, idx: number) {
         const r = image.bitmap.data[idx];
         const g = image.bitmap.data[idx + 1];
         const b = image.bitmap.data[idx + 2];
@@ -33,20 +66,11 @@ export async function processImage(rawBytes: Buffer): Promise<Buffer> {
         }
     });
 
-    const getBuf = typeof image.getBufferAsync === 'function' 
-        ? image.getBufferAsync.bind(image) 
-        : image.getBuffer.bind(image);
-        
-    return await getBuf('image/png');
+    return await getBuffer(image, "image/png");
 }
 
 export async function convertOriginalToPng(rawBytes: Buffer): Promise<Buffer> {
-    const jimpReader = typeof Jimp.read === 'function' ? Jimp.read : (Jimp as any).read;
-    const image = await jimpReader(rawBytes);
-    
-    const getBuf = typeof image.getBufferAsync === 'function' 
-        ? image.getBufferAsync.bind(image) 
-        : image.getBuffer.bind(image);
-        
-    return await getBuf('image/png');
+    const read = getJimpRead();
+    const image = await read(rawBytes);
+    return await getBuffer(image, "image/png");
 }

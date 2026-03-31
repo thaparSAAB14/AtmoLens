@@ -3,11 +3,12 @@
 import { useTransition, useState, useEffect } from "react";
 import { addNote, fetchNotes } from "@/app/actions/notes";
 import { timeAgo } from "@/lib/utils";
+import type { ObserverNote } from "@/lib/storage";
 import { Send, FileText } from "lucide-react";
 
 export function Notebook() {
   const [isPending, startTransition] = useTransition();
-  const [notes, setNotes] = useState<any[]>([]);
+  const [notes, setNotes] = useState<ObserverNote[]>([]);
 
   useEffect(() => {
     // Initial fetch

@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Cloud, Sun, Moon } from "lucide-react";
+import { Cloud } from "lucide-react";
 import SkyToggle from "@/components/ui/sky-toggle";
 
 const navItems = [
@@ -19,7 +19,10 @@ export function Navbar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const id = window.requestAnimationFrame(() => setMounted(true));
+    return () => window.cancelAnimationFrame(id);
+  }, []);
 
   return (
     <nav className="sticky top-4 z-50 mx-6 mt-4">

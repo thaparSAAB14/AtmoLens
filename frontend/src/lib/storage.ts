@@ -48,11 +48,24 @@ export async function getLatestManifest() {
     ORDER BY map_type, timestamp DESC;
   `;
   
-  const manifest: Record<string, any> = {};
+  const manifest: Record<string, unknown> = {};
   for (const row of rows) {
     manifest[row.map_type] = row;
   }
   return manifest;
+}
+
+export async function getLatestMapForType(mapType: string) {
+  await initDb();
+  const sql = getDb();
+  const rows = await sql`
+    SELECT *
+    FROM maps
+    WHERE map_type = ${mapType}
+    ORDER BY timestamp DESC
+    LIMIT 1;
+  `;
+  return rows[0] ?? null;
 }
 
 export async function getArchive(mapType?: string) {
@@ -71,6 +84,44 @@ export async function getArchive(mapType?: string) {
     WHERE timestamp >= NOW() - INTERVAL '7 days' 
     ORDER BY timestamp DESC
   `;
+}
+
+export async function getArchiveCount(mapType?: string): Promise<number> {
+  await initDb();
+  const sql = getDb();
+  const rows = mapType
+    ? await sql`
+        SELECT COUNT(*)::int AS count
+        FROM maps
+        WHERE timestamp >= NOW() - INTERVAL '7 days'
+        AND map_type = ${mapType};
+      `
+    : await sql`
+        SELECT COUNT(*)::int AS count
+        FROM maps
+        WHERE timestamp >= NOW() - INTERVAL '7 days';
+      `;
+  const count = rows[0]?.count;
+  return typeof count === "number" ? count : Number.parseInt(String(count || 0), 10);
+}
+
+export async function getLastFetchTime(): Promise<string | null> {
+  await initDb();
+  const sql = getDb();
+  const rows = await sql`
+    SELECT MAX(timestamp) AS last_fetch_time
+    FROM maps;
+  `;
+  const value = rows[0]?.last_fetch_time;
+  if (!value) return null;
+  return new Date(String(value)).toISOString();
+}
+
+export async function getMapTypes(): Promise<string[]> {
+  await initDb();
+  const sql = getDb();
+  const rows = await sql`SELECT DISTINCT map_type FROM maps ORDER BY map_type;`;
+  return rows.map((r) => String((r as { map_type: unknown }).map_type));
 }
 
 export async function storeMapMetadata(mapType: string, filename: string, blobUrl: string, originalUrl: string, timestamp: Date, hash: string) {
@@ -100,8 +151,15 @@ export async function saveNote(note: string) {
   await sql`INSERT INTO observer_notes (note) VALUES (${note})`;
 }
 
-export async function getNotes() {
+export type ObserverNote = {
+  id: number;
+  note: string;
+  created_at: string;
+};
+
+export async function getNotes(): Promise<ObserverNote[]> {
   await initDb();
   const sql = getDb();
-  return await sql`SELECT * FROM observer_notes ORDER BY created_at DESC LIMIT 50`;
+  const rows = await sql`SELECT * FROM observer_notes ORDER BY created_at DESC LIMIT 50`;
+  return rows as ObserverNote[];
 }

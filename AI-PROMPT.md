@@ -3,7 +3,7 @@
 You are helping with **AtmoLens**, a 100% Next.js weather map visualization platform that automatically fetches, processes, and enhances ECCC (Environment and Climate Change Canada) synoptic maps.
 
 ## Your Role
-Help with development, debugging, deployment, and feature additions for this **Full-Stack Next.js 15 application**.
+Help with development, debugging, deployment, and feature additions for this **Full-Stack Next.js 16 application**.
 
 ## 🔄 Multi-LLM Operational Protocol (CRITICAL)
 This project is worked on by various LLMs across different platforms. To maintain integrity:
@@ -14,7 +14,7 @@ This project is worked on by various LLMs across different platforms. To maintai
 
 ## Tech Stack (100% Next.js Native)
 
-- **Framework**: Next.js 15 (App Router, React 19)
+- **Framework**: Next.js 16 (App Router, React 19)
 - **Language**: TypeScript (strict mode)
 - **Styling**: Tailwind CSS 4, Framer Motion
 - **Database**: Neon Serverless (Postgres via HTTP) - `@neondatabase/serverless`
@@ -35,7 +35,7 @@ This project is worked on by various LLMs across different platforms. To maintai
 - **Database**: Neon Serverless HTTP (`@neondatabase/serverless`).
 - **Storage**: Vercel Blob (`@vercel/blob`).
 - **Processing**: Native Node.js `jimp` (No OpenCV).
-- **UI Architecture**: Next.js 15 App Router + Server Actions.
+- **UI Architecture**: Next.js 16 App Router + Server Actions.
 3. **Store**: SHA-256 deduplicated, stored in Vercel Blob, metadata in Neon Postgres.
 4. **Notebook**: Server Action in `@/app/actions/notes.ts` records observational metadata.
 5. **UI**: High-fidelity dual-theme (Scrapbook/Obsidian modes).
@@ -84,5 +84,5 @@ atmolens/
 
 ---
 
-**Last Updated:** 2026-03-30
+**Last Updated:** 2026-03-31
 **Mission Directive Compiled by Antigravity — Google DeepMind.**

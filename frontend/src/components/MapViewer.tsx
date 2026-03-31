@@ -13,20 +13,23 @@ export function MapViewer({ selectedType }: MapViewerProps) {
   const [maps, setMaps] = useState<Record<string, MapInfo>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [showOriginal, setShowOriginal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchMaps = useCallback(async () => {
+    setIsRefreshing(true);
     try {
       const data = await getLatestMaps();
       setMaps(data.maps || {});
       setError(null);
     } catch {
-      setError("Failed to load maps. Is the backend running?");
+      setError("We couldn’t load the latest maps right now.");
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
@@ -45,6 +48,13 @@ export function MapViewer({ selectedType }: MapViewerProps) {
     return () => document.removeEventListener("fullscreenchange", handleFsChange);
   }, []);
 
+  // Allow other components (e.g., StatusBar) to request a refresh.
+  useEffect(() => {
+    const handler = () => fetchMaps();
+    window.addEventListener("atmolens:refresh", handler);
+    return () => window.removeEventListener("atmolens:refresh", handler);
+  }, [fetchMaps]);
+
   const toggleFullscreen = async () => {
     if (!mapContainerRef.current) return;
     if (!document.fullscreenElement) {
@@ -54,29 +64,38 @@ export function MapViewer({ selectedType }: MapViewerProps) {
     }
   };
 
-  const handleDownload = async () => {
-    if (!imageUrl) return;
+  const handleDownload = async (url: string, filename: string) => {
+    if (!url) return;
     try {
-      const response = await fetch(imageUrl);
+      const response = await fetch(url);
       const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
-      a.download = currentMap?.filename || "map.png";
+      a.href = objectUrl;
+      a.download = filename || "map.png";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objectUrl);
     } catch {
       // Fallback to opening in new tab
-      window.open(imageUrl, "_blank");
+      window.open(url, "_blank");
     }
   };
 
   const currentMap = maps[selectedType];
+  const hasOriginal = !!currentMap?.original_url;
+  const isShowingOriginal = showOriginal && hasOriginal;
+
+  useEffect(() => {
+    if (showOriginal && !hasOriginal) setShowOriginal(false);
+  }, [showOriginal, hasOriginal]);
+
   const imageUrl = currentMap
-    ? getImageUrl(showOriginal && currentMap.original_url ? currentMap.original_url : currentMap.image_url)
+    ? getImageUrl(isShowingOriginal ? currentMap.original_url! : currentMap.image_url)
     : null;
+
+  const hasAnyData = Object.keys(maps).length > 0;
 
   if (loading) {
     return (
@@ -91,14 +110,22 @@ export function MapViewer({ selectedType }: MapViewerProps) {
     );
   }
 
-  if (error) {
+  if (error && !hasAnyData) {
     return (
       <div className="flex items-center justify-center h-[500px] rounded-2xl bg-red-500/5">
         <div className="text-center px-6">
           <p className="text-red-400 font-medium">{error}</p>
-          <p className="text-[var(--text-muted)] text-sm mt-2">
-            Start the backend: <code className="bg-[var(--surface-variant)] px-2 py-1 rounded">vercel dev</code>
-          </p>
+          <p className="text-[var(--text-muted)] text-sm mt-2">Please try again in a moment.</p>
+          <button
+            onClick={() => {
+              setLoading(true);
+              fetchMaps();
+            }}
+            className="mt-4 px-4 py-2 rounded-lg bg-[var(--accent-dim)] text-[var(--accent)] text-sm font-medium hover:bg-[var(--accent)]/15 transition-colors disabled:opacity-60"
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? "Retrying…" : "Try again"}
+          </button>
         </div>
       </div>
     );
@@ -122,6 +149,21 @@ export function MapViewer({ selectedType }: MapViewerProps) {
 
   return (
     <div className="space-y-4">
+      {error && hasAnyData && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+          <p className="text-amber-200 text-sm">
+            Live updates are temporarily unavailable. Showing the last available map.
+          </p>
+          <button
+            onClick={() => fetchMaps()}
+            className="px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-200 text-xs font-medium hover:bg-amber-500/20 transition-colors disabled:opacity-60"
+            disabled={isRefreshing}
+          >
+            {isRefreshing ? "Refreshing…" : "Retry"}
+          </button>
+        </div>
+      )}
+
       {/* Controls bar */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-3">
@@ -136,14 +178,16 @@ export function MapViewer({ selectedType }: MapViewerProps) {
         <div className="flex items-center gap-2">
           {/* Toggle original/processed */}
           <button
-            onClick={() => setShowOriginal(!showOriginal)}
+            onClick={() => hasOriginal && setShowOriginal((v) => !v)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-              showOriginal
+              isShowingOriginal
                 ? "bg-amber-500/20 text-amber-300"
                 : "bg-[var(--accent-dim)] text-[var(--accent)]"
             }`}
+            disabled={!hasOriginal}
+            title={hasOriginal ? "Toggle original/enhanced" : "Original not available for this map yet"}
           >
-            {showOriginal ? "Original" : "Enhanced"}
+            {isShowingOriginal ? "Original" : "Enhanced"}
           </button>
 
           {/* Zoom controls */}
@@ -177,7 +221,14 @@ export function MapViewer({ selectedType }: MapViewerProps) {
           {/* Download */}
           {imageUrl && (
             <button
-              onClick={handleDownload}
+              onClick={() =>
+                handleDownload(
+                  imageUrl,
+                  isShowingOriginal
+                    ? currentMap.original_filename || currentMap.filename
+                    : currentMap.filename
+                )
+              }
               className="p-1.5 rounded-lg bg-[var(--surface-container-high)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
               title="Download"
             >
@@ -192,13 +243,17 @@ export function MapViewer({ selectedType }: MapViewerProps) {
         ref={mapContainerRef}
         className="map-container relative rounded-2xl overflow-hidden bg-[var(--surface-container)] glow-md"
       >
-        <div className="overflow-auto max-h-[600px] scrollbar-thin">
+        <div
+          className={`overflow-auto scrollbar-thin ${
+            isFullscreen ? "max-h-screen" : "max-h-[600px]"
+          }`}
+        >
           {imageUrl && (
             <img
               src={imageUrl}
               alt={MAP_TYPE_LABELS[selectedType] || selectedType}
-              className="w-full transition-transform duration-300 ease-out"
-              style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}
+              className="block max-w-none"
+              style={{ width: `${zoom * 100}%` }}
               draggable={false}
             />
           )}

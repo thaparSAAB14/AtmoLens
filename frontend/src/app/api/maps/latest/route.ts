@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getLatestManifest } from "@/lib/storage";
+import { mapRowToMapInfo, type MapRow } from "@/lib/mapSerializers";
 
 export const dynamic = 'force-dynamic';
 
@@ -9,8 +10,15 @@ export async function GET() {
         if (Object.keys(manifest).length === 0) {
             return NextResponse.json({ maps: {}, message: "No maps processed yet" });
         }
-        return NextResponse.json({ maps: manifest });
-    } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
+        const maps = Object.fromEntries(
+          Object.entries(manifest).map(([mapType, row]) => [
+            mapType,
+            mapRowToMapInfo(row as MapRow),
+          ])
+        );
+        return NextResponse.json({ maps });
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : "Unknown error";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

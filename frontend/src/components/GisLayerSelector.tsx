@@ -7,10 +7,16 @@ import { Layers } from "lucide-react";
 interface GisLayerSelectorProps {
   selected: string[];
   onChange: (layers: string[]) => void;
+  disabled?: boolean;
 }
 
-export function GisLayerSelector({ selected, onChange }: GisLayerSelectorProps) {
+export function GisLayerSelector({
+  selected,
+  onChange,
+  disabled = true,
+}: GisLayerSelectorProps) {
   const toggleLayer = (id: string) => {
+    if (disabled) return;
     if (selected.includes(id)) {
       onChange(selected.filter((l) => l !== id));
     } else {
@@ -25,15 +31,23 @@ export function GisLayerSelector({ selected, onChange }: GisLayerSelectorProps) 
         <h4 className="text-xs font-label uppercase tracking-widest">
            Weather Data Overlays (WMS)
         </h4>
+        {disabled && (
+          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-container)] text-[var(--text-muted)]">
+            Coming soon
+          </span>
+        )}
       </div>
       <div className="flex flex-col gap-2">
         {GEOMET_LAYERS.map((layer: GeoMetLayer) => (
           <button
             key={layer.id}
             onClick={() => toggleLayer(layer.id)}
+            disabled={disabled}
             className={cn(
               "flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-medium transition-all duration-300 group",
-              selected.includes(layer.id)
+              disabled
+                ? "bg-[var(--surface-container)] text-[var(--text-muted)] opacity-60 cursor-not-allowed border border-transparent"
+                : selected.includes(layer.id)
                 ? "bg-[var(--accent-dim)] text-[var(--accent)] border border-[var(--accent)]/20"
                 : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:bg-[var(--surface-container-high)] hover:text-[var(--text-secondary)] border border-transparent"
             )}
@@ -44,14 +58,14 @@ export function GisLayerSelector({ selected, onChange }: GisLayerSelectorProps) 
                 {layer.id.toUpperCase()} • GeoMet Vector
               </span>
             </div>
-            {selected.includes(layer.id) && (
+            {!disabled && selected.includes(layer.id) && (
               <div className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
             )}
           </button>
         ))}
       </div>
       <p className="text-[10px] text-[var(--text-muted)] mt-4 px-1 leading-relaxed italic opacity-60">
-        "Contains information licensed under the Open Government Licence – Canada."
+        Overlays are in preview while we validate alignment and performance.
       </p>
     </div>
   );
