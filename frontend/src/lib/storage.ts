@@ -22,10 +22,12 @@ export async function initDb() {
         blob_url TEXT NOT NULL,
         original_blob_url TEXT,
         timestamp TIMESTAMPTZ NOT NULL,
-        hash TEXT UNIQUE NOT NULL
+        hash TEXT NOT NULL
     );
   `;
   await sql`CREATE INDEX IF NOT EXISTS idx_maps_type_ts ON maps(map_type, timestamp DESC);`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_maps_type_hash_ts ON maps(map_type, hash, timestamp DESC);`;
+  await sql`ALTER TABLE maps DROP CONSTRAINT IF EXISTS maps_hash_key;`;
   
   // Meteorologist's Notebook
   await sql`
@@ -124,11 +126,18 @@ export async function getMapTypes(): Promise<string[]> {
   return rows.map((r) => String((r as { map_type: unknown }).map_type));
 }
 
-export async function hasMapHash(hash: string): Promise<boolean> {
+export async function isLatestMapHash(mapType: string, hash: string): Promise<boolean> {
   await initDb();
   const sql = getDb();
-  const rows = await sql`SELECT 1 FROM maps WHERE hash = ${hash} LIMIT 1;`;
-  return rows.length > 0;
+  const rows = await sql`
+    SELECT hash
+    FROM maps
+    WHERE map_type = ${mapType}
+    ORDER BY timestamp DESC
+    LIMIT 1;
+  `;
+  const latestHash = rows[0]?.hash;
+  return typeof latestHash === "string" && latestHash === hash;
 }
 
 export async function storeMapMetadata(mapType: string, filename: string, blobUrl: string, originalUrl: string, timestamp: Date, hash: string) {
@@ -137,12 +146,7 @@ export async function storeMapMetadata(mapType: string, filename: string, blobUr
   await sql`
     INSERT INTO maps (map_type, filename, blob_url, original_blob_url, timestamp, hash)
     VALUES (${mapType}, ${filename}, ${blobUrl}, ${originalUrl}, ${timestamp.toISOString()}, ${hash})
-    ON CONFLICT (hash) DO UPDATE SET
-      map_type = EXCLUDED.map_type,
-      filename = EXCLUDED.filename,
-      blob_url = EXCLUDED.blob_url,
-      original_blob_url = EXCLUDED.original_blob_url,
-      timestamp = EXCLUDED.timestamp;
+    ;
   `;
 }
 

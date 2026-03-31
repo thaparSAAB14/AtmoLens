@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { put } from '@vercel/blob';
-import { hasMapHash, initDb, storeMapMetadata } from '@/lib/storage';
+import { initDb, isLatestMapHash, storeMapMetadata } from '@/lib/storage';
 import { processImage } from '@/lib/processor';
 
 export const dynamic = 'force-dynamic';
@@ -62,8 +62,8 @@ export async function GET() {
                     .update(rawBytes)
                     .digest('hex');
 
-                // Deduplicate early to keep cron fast and prevent wasted blob uploads.
-                if (await hasMapHash(fileHash)) {
+                // Skip only if the newest saved map for this type is unchanged.
+                if (await isLatestMapHash(mapType, fileHash)) {
                     results.push({ mapType, skipped: true });
                     continue;
                 }
