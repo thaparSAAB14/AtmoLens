@@ -27,6 +27,9 @@ AtmoLens maps now support **MSC GeoMet WMS overlays** directly in the Maps exper
   - `GDPS.ETA_PRMSL` (Sea-level pressure)
   - `GDPS.ETA_TT` (2m temperature)
 - **Backend WMS proxy**: `/api/geomet/wms` validates and forwards `GetMap` requests to `https://geo.weather.gc.ca/geomet`.
+- **Production enablement flags**:
+  - `NEXT_PUBLIC_ENABLE_WMS=true` (enables WMS controls in Maps UI)
+  - `ENABLE_GEOMET_WMS=true` (enables backend WMS proxy route)
 - **Geo-reference behavior**: Overlays are requested with EPSG:4326 + North America extent for alignment against surface analysis views.
 - **Time-aware overlays**: When available, the current map timestamp is passed to WMS requests.
 - **Legal compliance**: ECCC attribution is rendered in-map:

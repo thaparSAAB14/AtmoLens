@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { GEOMET_WMS_LAYER_NAMES } from "@/lib/geomet";
 
 export const dynamic = "force-dynamic";
 
 const GEOMET_WMS_ENDPOINT = "https://geo.weather.gc.ca/geomet";
 const ALLOWED_FORMATS = new Set(["image/png", "image/png8", "image/gif"]);
+const IS_WMS_PROXY_ENABLED = process.env.ENABLE_GEOMET_WMS !== "false";
 
 export async function GET(req: NextRequest) {
+  if (!IS_WMS_PROXY_ENABLED) {
+    return NextResponse.json(
+      { error: "GeoMet WMS proxy is disabled by environment configuration." },
+      { status: 503 }
+    );
+  }
+
   const params = req.nextUrl.searchParams;
 
   const service = params.get("service")?.toUpperCase() ?? "WMS";
@@ -30,6 +39,14 @@ export async function GET(req: NextRequest) {
 
   if (!ALLOWED_FORMATS.has(format)) {
     return NextResponse.json({ error: "Unsupported output format." }, { status: 400 });
+  }
+
+  const requestedLayers = layers.split(",").map((layer) => layer.trim()).filter(Boolean);
+  if (requestedLayers.length === 0 || requestedLayers.some((layer) => !GEOMET_WMS_LAYER_NAMES.has(layer))) {
+    return NextResponse.json(
+      { error: "Unsupported layer request." },
+      { status: 400 }
+    );
   }
 
   const upstream = new URL(GEOMET_WMS_ENDPOINT);

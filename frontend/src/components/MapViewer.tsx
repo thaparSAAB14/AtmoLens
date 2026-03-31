@@ -9,9 +9,10 @@ import { Download, Maximize2, Minimize2 } from "lucide-react";
 interface MapViewerProps {
   selectedType: string;
   selectedLayers: string[];
+  wmsEnabled: boolean;
 }
 
-export function MapViewer({ selectedType, selectedLayers }: MapViewerProps) {
+export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewerProps) {
   const [maps, setMaps] = useState<Record<string, MapInfo>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +100,7 @@ export function MapViewer({ selectedType, selectedLayers }: MapViewerProps) {
   const localTimestamp = currentMap?.timestamp ? formatTimestampLocal(currentMap.timestamp) : "";
 
   const hasAnyData = Object.keys(maps).length > 0;
-  const canUseGeoMet = selectedType.startsWith("surface_");
+  const canUseGeoMet = wmsEnabled && selectedType.startsWith("surface_");
   const geometTime = currentMap?.timestamp ? new Date(currentMap.timestamp).toISOString() : undefined;
   const geometBbox = "-175,10,-15,85"; // North America-friendly bbox in EPSG:4326
   const selectedGeoLayers = GEOMET_LAYERS.filter((layer) => selectedLayers.includes(layer.id));
