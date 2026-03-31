@@ -18,20 +18,20 @@ export const GEOMET_LAYERS: GeoMetLayer[] = [
   {
     id: "mslp",
     name: "Sea-level pressure",
-    layer: "GDPS.ETA_PRMSL",
-    description: "Mean sea level pressure (Pa).",
+    layer: "GDPS.ETA_PN",
+    description: "Sea level pressure contours (Pa).",
     version: "1.1.1",
     srs: "EPSG:4326",
-    opacity: 0.7,
+    opacity: 0.72,
   },
   {
     id: "temp_2m",
     name: "2m temperature",
-    layer: "GDPS.ETA_TT",
-    description: "Near-surface air temperature (K).",
+    layer: "GDPS.ETA_TT-CONTOUR",
+    description: "Near-surface temperature contours (K).",
     version: "1.1.1",
     srs: "EPSG:4326",
-    opacity: 0.55,
+    opacity: 0.6,
   },
   {
     id: "precip_24h",
@@ -40,7 +40,7 @@ export const GEOMET_LAYERS: GeoMetLayer[] = [
     description: "Accumulated precipitation forecast.",
     version: "1.1.1",
     srs: "EPSG:4326",
-    opacity: 0.6,
+    opacity: 0.35,
   },
 ];
 

@@ -9,6 +9,12 @@ const IS_WMS_PROXY_ENABLED = process.env.ENABLE_GEOMET_WMS !== "false";
 const ALLOWED_SRS = new Set(["EPSG:4326", "EPSG:3857"]);
 const MAX_IMAGE_DIMENSION = 2048;
 
+function extractServiceException(payload: string): string | null {
+  const match = payload.match(/<ogc:ServiceException[^>]*>([\s\S]*?)<\/ogc:ServiceException>/i);
+  if (!match?.[1]) return null;
+  return match[1].replace(/\s+/g, " ").trim();
+}
+
 function clampDimension(value: string | null, fallback: number): string {
   const parsed = Number.parseInt(value ?? "", 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return String(fallback);
@@ -106,13 +112,22 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const contentType = response.headers.get("content-type") ?? "image/png";
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("image/")) {
+    const payload = await response.text();
+    const upstreamMessage = extractServiceException(payload) ?? "GeoMet returned a non-image response.";
+    return NextResponse.json(
+      { error: upstreamMessage },
+      { status: 502 }
+    );
+  }
+
   const body = await response.arrayBuffer();
 
   return new NextResponse(body, {
     status: 200,
     headers: {
-      "Content-Type": contentType,
+      "Content-Type": contentType || "image/png",
       "Cache-Control": "public, max-age=300, stale-while-revalidate=600",
       "Access-Control-Allow-Origin": "*",
     },

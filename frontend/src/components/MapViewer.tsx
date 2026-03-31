@@ -19,6 +19,7 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [overlayWarning, setOverlayWarning] = useState<string | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchMaps = useCallback(async () => {
@@ -101,9 +102,12 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
 
   const hasAnyData = Object.keys(maps).length > 0;
   const canUseGeoMet = wmsEnabled && selectedType.startsWith("surface_");
-  const geometTime = currentMap?.timestamp ? new Date(currentMap.timestamp).toISOString() : undefined;
   const geometBbox = "-175,10,-15,85"; // minLon,minLat,maxLon,maxLat (WMS 1.1.1 + EPSG:4326)
   const selectedGeoLayers = GEOMET_LAYERS.filter((layer) => selectedLayers.includes(layer.id));
+
+  useEffect(() => {
+    setOverlayWarning(null);
+  }, [selectedType, selectedLayers.join("|"), wmsEnabled]);
 
   if (loading) {
     return (
@@ -195,6 +199,11 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
           >
             {isRefreshing ? "Refreshing…" : "Retry"}
           </button>
+        </div>
+      )}
+      {overlayWarning && (
+        <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 px-4 py-3">
+          <p className="text-orange-200 text-sm">{overlayWarning}</p>
         </div>
       )}
 
@@ -291,8 +300,6 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
                     width: "1400",
                     height: "900",
                   });
-                  if (geometTime) qs.set("time", geometTime);
-                  if (geometTime) qs.set("dim_reference_time", geometTime);
 
                   return (
                     <img
@@ -301,6 +308,11 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
                       alt={`${layer.name} overlay`}
                       className="absolute inset-0 w-full h-full object-contain pointer-events-none"
                       style={{ opacity: layer.opacity ?? 0.6 }}
+                      onError={() =>
+                        setOverlayWarning(
+                          "One or more weather overlays could not be loaded right now. Try toggling the layer or refreshing."
+                        )
+                      }
                       draggable={false}
                     />
                   );

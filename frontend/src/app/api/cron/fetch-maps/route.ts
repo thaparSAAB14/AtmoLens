@@ -69,7 +69,7 @@ export async function GET() {
                 }
 
                 // TS Processor (Jimp)
-                const processedBytes = await processImage(rawBytes);
+                const processedBytes = await processImage(rawBytes, mapType);
 
                 const tsStr = new Date().toISOString().replace(/[:.]/g, '-');
                 const processedName = `atmolens/${mapType}/map_${tsStr}_enhanced.png`;
