@@ -18,6 +18,8 @@ const SOURCES: Record<string, string> = {
     "upper_850hpa": "https://weather.gc.ca/data/analysis/saa_100.gif",
 };
 
+const PROCESSING_VERSION = "enhancer-v2";
+
 const BLOB_ACCESS: "public" | "private" =
     process.env.BLOB_ACCESS === "public" ? "public" : "private";
 
@@ -58,6 +60,7 @@ export async function GET() {
                 // Generate SHA-256 Hash (scoped by mapType to avoid cross-type collisions)
                 const fileHash = crypto
                     .createHash('sha256')
+                    .update(PROCESSING_VERSION)
                     .update(mapType)
                     .update(rawBytes)
                     .digest('hex');
