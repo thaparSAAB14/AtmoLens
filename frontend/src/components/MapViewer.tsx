@@ -104,6 +104,7 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
   const hasAnyData = Object.keys(maps).length > 0;
   const canUseGeoMet = wmsEnabled && selectedType.startsWith("surface_");
   const geometBbox = "-175,10,-15,85"; // minLon,minLat,maxLon,maxLat (WMS 1.1.1 + EPSG:4326)
+  const selectedLayersKey = selectedLayers.join("|");
   const selectedGeoLayers = GEOMET_LAYERS.filter((layer) => selectedLayers.includes(layer.id));
 
   const buildWmsOverlaySrc = useCallback((layer: GeoMetLayer) => {
@@ -126,7 +127,7 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
   useEffect(() => {
     setOverlayWarning(null);
     setGeneratedFallbackLayers(new Set());
-  }, [selectedType, selectedLayers.join("|"), wmsEnabled]);
+  }, [selectedType, selectedLayersKey, wmsEnabled]);
 
   if (loading) {
     return (
