@@ -6,30 +6,31 @@ AtmoLens is an automated weather map enhancement system that transforms grayscal
 
 ## Architecture
 
-### Deployment: 100% Vercel
+### Deployment: 100% Vercel Native
+
+AtmoLens has been refactored into a **100% Next.js Full-Stack Architecture**. This eliminates the overhead and instability of Python serverless runtimes by leveraging native TypeScript and Node.js Edge-ready modules.
 
 ```
 ┌─────────────────────────────────────────┐
-│  VERCEL (Single Platform)              │
+│  VERCEL (Unified Full-Stack)           │
 ├─────────────────────────────────────────┤
 │                                         │
-│  Frontend (Next.js 15)                 │
-│  - https://your-app.vercel.app         │
-│  - React 19, TypeScript, Tailwind CSS  │
-│  - Dual theme: Scrapbook/Obsidian      │
+│  Frontend & API (Next.js 15)           │
+│  - React 19, TypeScript, Tailwind 4    │
+│  - Native API Routes (@/app/api/*)     │
+│  - Server Actions (@/app/actions/*)    │
 │                                         │
-│  Backend API (Python Serverless)       │
-│  - /api/* routes                       │
-│  - FastAPI handlers                    │
-│  - OpenCV processing                   │
+│  Image Processing (Node.js Edge)       │
+│  - Jimp (@/lib/processor.ts)           │
+│  - Pixel-perfect "Bit Depth" coloring  │
 │                                         │
-│  Cron Jobs (Scheduled)                 │
-│  - /api/cron/fetch-maps (30 min)      │
-│  - /api/cron/cleanup (daily)          │
+│  Database & Storage                    │
+│  - Neon Serverless (Postgres via HTTP) │
+│  - Vercel Blob (Map Image CDN)         │
 │                                         │
-│  Storage (Vercel Services)             │
-│  - Postgres: Map metadata             │
-│  - Blob: PNG/GIF files                │
+│  Automation (Vercel Crons)             │
+│  - /api/cron/fetch-maps (30 min)       │
+│  - /api/cron/cleanup (daily)           │
 │                                         │
 └─────────────────────────────────────────┘
 ```
@@ -37,196 +38,97 @@ AtmoLens is an automated weather map enhancement system that transforms grayscal
 ### Data Flow
 
 ```
-ECCC Weather API
+ECCC Weather API (GIF)
     ↓
-Fetch (every 30 min)
+fetch() in Next.js API Route
     ↓
-SHA-256 Hash Check (dedup)
+SHA-256 Hash Check (Neon Postgres)
     ↓
-OpenCV Processing
+Jimp Pixel Processing (TS)
     ↓
 Vercel Blob Storage
     ↓
-Postgres Metadata
+Neon Postgres Metadata Update
     ↓
-Next.js Frontend
+Next.js Frontend (Revalidate /maps)
     ↓
 User Browser (Global CDN)
 ```
 
-## Backend Processing Pipeline
+## Backend Logic (Next.js API Routes)
 
-### 1. Fetching (fetcher.py)
-```python
-# Dual-source strategy
-1. Try ECCC static GIF URLs (legacy)
-2. Fallback to MSC GeoMet WMS API (future-proof)
-3. Return raw bytes
-```
+### 1. Fetching & Processing (`/api/cron/fetch-maps`)
+- Core logic resides in `frontend/src/app/api/cron/fetch-maps/route.ts`.
+- Fetches 8 map types from ECCC static URLs.
+- Uses `crypto` for SHA-256 deduplication.
+- **Image Pipeline (`src/lib/processor.ts`):** 
+  - Uses `Jimp` for lightweight, dependency-free Node.js image manipulation.
+  - Scans pixels sequentially: 
+    - `gray < 100`: Foreground (preserves original text/isobars).
+    - `100 < gray < 240`: Land (#DCECCB).
+    - `gray >= 240`: Water (#4A90E2).
 
-**8 Map Types:**
-- Surface: 00Z, 06Z, 12Z, 18Z
-- Upper Air: 250 hPa, 500 hPa, 700 hPa, 850 hPa
+### 2. Database Layer (`src/lib/storage.ts`)
+- Uses `@neondatabase/serverless` for **HTTP-based SQL queries**.
+- Bypasses TCP connection limits and TLS/channel_binding issues common in serverless Python.
+- Automatically handles table initialization (`initDb`) on every cold-start.
 
-### 2. Deduplication (storage.py)
-```python
-# SHA-256 hash of raw image
-hash = hashlib.sha256(image_bytes).hexdigest()
+### 3. Meteorologist's Notebook
+- Feature implementation in `src/app/actions/notes.ts`.
+- Uses **Next.js Server Actions** to record observational logs directly from the UI to Neon Postgres.
 
-# Check if already processed
-if hash in processed_hashes:
-    skip  # Don't reprocess identical maps
-```
-
-### 3. Processing (processor.py)
-```python
-# OpenCV Pipeline:
-1. Convert to grayscale
-2. Extract foreground (threshold at 100)
-3. Segment land vs water (pre-built mask)
-4. Apply colors:
-   - Water: #4A90E2 (74, 144, 226 RGB)
-   - Land: #DCECCB (220, 236, 203 RGB)
-5. Smooth boundaries (morphological operations)
-6. Merge with original (preserve text/isobars)
-```
-
-### 4. Storage
-```python
-# Vercel Blob
-blob_url = await blob.upload(processed_png)
-
-# Postgres
-INSERT INTO maps (map_type, filename, blob_url, timestamp, hash)
-VALUES (?, ?, ?, NOW(), ?)
-```
-
-### 5. Cleanup
-```python
-# Daily cron (midnight)
-DELETE FROM maps WHERE timestamp < NOW() - INTERVAL '7 days'
-# Also delete associated Blob files
-```
+### 4. Force Sync
+- Integrated into `StatusBar.tsx`.
+- Allows users to manually trigger the internal `/api/cron/fetch-maps` route to populate the database instantly.
 
 ## Frontend Architecture
 
 ### Pages (App Router)
 
 1. **Home** (`/app/page.tsx`)
-   - Hero with shader animation
-   - Feature cards (bento grid)
-   - CTA buttons
+   - Hero with Warp Shader (Three.js/GLSL).
+   - Bento-grid design system.
 
 2. **Maps** (`/app/maps/page.tsx`)
-   - Live status bar
-   - Map type selector (sidebar)
-   - MapViewer component
-   - Zoom, fullscreen, download controls
+   - **StatusBar**: Real-time Edge health and "Force Sync" control.
+   - **MapViewer**: Zoomable, downloadable, revalidating map display.
+   - **Notebook**: Observational log interface (Server Action).
 
 3. **Archive** (`/app/archive/page.tsx`)
-   - Gallery view (7-day rolling)
-   - Filters by map type
-   - Date navigation
+   - 7-day rolling gallery using Postgres metadata.
 
 4. **About** (`/app/about/page.tsx`)
-   - **DO NOT MODIFY** - finalized narrative
-
-### Key Components
-
-**MapViewer** (`components/MapViewer.tsx`)
-```tsx
-// Features:
-- Fetch latest maps from API
-- Display with zoom controls
-- Toggle original vs enhanced
-- Fullscreen mode
-- Download functionality
-- Auto-refresh every 60 seconds
-```
-
-**StatusBar** (`components/StatusBar.tsx`)
-```tsx
-// Real-time status:
-- Backend health (green dot = live)
-- Last fetch time
-- Next scheduled run
-- Total maps processed
-- Archive count
-```
-
-**ThemeProvider** (`components/ThemeProvider.tsx`)
-```tsx
-// Dual theme system:
-- Scrapbook: Light, tactile, #fdfbf0 background
-- Obsidian: Dark, high-contrast, #121213 background
-- Uses next-themes for persistence
-```
+   - **DO NOT MODIFY** - finalized narrative asset.
 
 ### API Client (`lib/api.ts`)
-
-```typescript
-// Base URL configuration
-const API_BASE = "/api";  // Same domain (Vercel)
-
-// Key functions:
-- getStatus() → System health
-- getLatestMaps() → All latest maps
-- getArchive() → 7-day archive
-- getImageUrl(path) → Blob URL
-```
+- Same-domain requests to `/api/status`, `/api/maps/latest`, etc.
+- Standardized `SystemStatus` interface (Live Edge status).
 
 ## Database Schema
 
-### Postgres Tables
+### tables
 
 ```sql
+-- Map Metadata
 CREATE TABLE maps (
     id SERIAL PRIMARY KEY,
-    map_type VARCHAR(50) NOT NULL,
-    filename VARCHAR(255) NOT NULL,
+    map_type TEXT NOT NULL,
+    filename TEXT NOT NULL,
     blob_url TEXT NOT NULL,
     original_blob_url TEXT,
-    timestamp TIMESTAMPTZ DEFAULT NOW(),
-    file_size INTEGER,
-    hash VARCHAR(64) UNIQUE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    timestamp TIMESTAMPTZ NOT NULL,
+    hash TEXT UNIQUE NOT NULL
 );
 
-CREATE INDEX idx_maps_type ON maps(map_type);
-CREATE INDEX idx_maps_timestamp ON maps(timestamp DESC);
-CREATE INDEX idx_maps_hash ON maps(hash);
-
--- View for latest maps
-CREATE VIEW latest_maps AS
-SELECT DISTINCT ON (map_type) *
-FROM maps
-ORDER BY map_type, timestamp DESC;
+-- Observational Logs
+CREATE TABLE observer_notes (
+    id SERIAL PRIMARY KEY,
+    note TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 ```
 
-## Configuration
-
-### Backend (config.py)
-
-```python
-# Environment variable driven
-HOST = os.getenv("HOST", "0.0.0.0")
-PORT = int(os.getenv("PORT", "8001"))
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
-ALLOWED_ORIGINS = [origin.strip() for origin in FRONTEND_ORIGIN.split(",")]
-
-# ECCC Data Sources
-STATIC_MAP_SOURCES = {
-    "surface_00z": "https://weather.gc.ca/data/analysis/jac00_100.gif",
-    # ... 8 total
-}
-
-# Processing settings
-FOREGROUND_THRESHOLD = 100
-WATER_COLOR = (226, 144, 74)  # BGR
-LAND_COLOR = (203, 236, 220)  # BGR
-```
-
-### Vercel (vercel.json)
+## Configuration (vercel.json)
 
 ```json
 {
@@ -234,198 +136,21 @@ LAND_COLOR = (203, 236, 220)  # BGR
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/.next",
   "framework": "nextjs",
-  "functions": {
-    "api/**/*.py": {
-      "runtime": "python3.9"
-    }
-  },
   "crons": [
     {
       "path": "/api/cron/fetch-maps",
       "schedule": "*/30 * * * *"
-    },
-    {
-      "path": "/api/cron/cleanup",
-      "schedule": "0 0 * * *"
     }
   ]
 }
 ```
 
-## API Endpoints
-
-### Backend Routes
-
-```
-GET  /api/status           → System health, scheduler info
-GET  /api/maps/latest      → Latest map of each type
-GET  /api/maps/latest/:type → Latest map of specific type
-GET  /api/maps/archive     → All maps in 7-day archive
-GET  /api/maps/archive/:type → Archive for specific type
-GET  /api/maps/image/:type/:filename → Serve PNG image
-POST /api/maps/fetch       → Manually trigger fetch cycle
-GET  /api/cron/fetch-maps  → Cron job handler
-GET  /api/cron/cleanup     → Cron job handler
-```
-
-## Design System
-
-### Colors
-
-**Scrapbook Mode (Light):**
-```css
---background: #fdfbf0
---surface: #ffffff
---text-primary: #1a1a1a
---text-secondary: #666666
---accent: #4A90E2
-```
-
-**Obsidian Mode (Dark):**
-```css
---background: #121213
---surface: #1e1e1f
---text-primary: #ffffff
---text-secondary: #a0a0a0
---accent: #64b5f6
-```
-
-### Typography
-
-```css
---font-display: Space Grotesk (headings)
---font-body: Plus Jakarta Sans (body text)
---font-label: Inter (UI labels)
---font-handwriting: Caveat (annotations)
-```
-
-## Performance Optimizations
-
-1. **Next.js Image Optimization**: All images served via Next.js Image component
-2. **Static Generation**: Homepage and about page pre-rendered
-3. **Incremental Regeneration**: Maps page revalidates every 60 seconds
-4. **Edge Caching**: CDN caches static assets globally
-5. **Lazy Loading**: Heavy components load on demand
-6. **Code Splitting**: Automatic per-route code splitting
-
-## Security
-
-1. **CORS**: Configured to allow only specified origins
-2. **Rate Limiting**: Vercel automatic DDoS protection
-3. **Environment Variables**: Secrets stored securely in Vercel
-4. **SQL Injection**: Parameterized queries (psycopg2)
-5. **XSS**: React automatic escaping
-6. **CSP**: Content Security Policy headers
-
-## Monitoring
-
-1. **Vercel Analytics**: Built-in (already integrated)
-2. **Backend Logs**: Vercel function logs
-3. **Error Tracking**: Console logs in Vercel dashboard
-4. **Uptime**: Vercel status page
-5. **Cron Job Status**: Vercel cron logs
-
-## Common Issues & Solutions
-
-### Issue: Backend Offline
-**Cause:** API not deployed or crashed
-**Fix:** Check Vercel logs, redeploy
-
-### Issue: CORS Errors
-**Cause:** Frontend origin not allowed
-**Fix:** Add frontend URL to `FRONTEND_ORIGIN` env var
-
-### Issue: No Maps Showing
-**Cause:** Cron hasn't run yet or fetch failed
-**Fix:** Manually trigger `/api/maps/fetch`
-
-### Issue: Database Connection Failed
-**Cause:** Postgres not connected to project
-**Fix:** Vercel dashboard → Storage → Connect Postgres
-
-### Issue: Blob Upload Failed
-**Cause:** Blob storage not configured
-**Fix:** Vercel dashboard → Storage → Connect Blob
-
-## Development Workflow
-
-### Local Development
-```bash
-# Frontend
-cd frontend
-npm install
-npm run dev  # http://localhost:3000
-
-# Backend (standalone)
-cd backend
-python -m pip install -r requirements.txt
-python main.py  # http://localhost:8001
-```
-
-### Deployment
-```bash
-git add .
-git commit -m "Your message"
-git push origin main
-# Vercel auto-deploys in 1-2 minutes
-```
-
-### Testing
-```bash
-# Frontend build test
-cd frontend
-npm run build
-
-# Backend test
-cd backend
-python main.py
-# Then: curl http://localhost:8001/api/status
-```
-
-## Dependencies
-
-### Frontend (package.json)
-```json
-{
-  "next": "16.2.1",
-  "react": "19.2.4",
-  "framer-motion": "^12.38.0",
-  "next-themes": "^0.4.6",
-  "lucide-react": "^1.7.0",
-  "tailwindcss": "^4"
-}
-```
-
-### Backend (requirements.txt)
-```
-fastapi==0.115.0
-uvicorn[standard]==0.30.0
-opencv-python-headless==4.10.0.84
-numpy==1.26.4
-Pillow==10.4.0
-httpx==0.27.0
-apscheduler==3.10.4
-python-dotenv==1.0.1
-```
-
-### API (api/requirements.txt)
-```
-httpx==0.27.0
-Pillow==10.4.0
-psycopg2-binary==2.9.9
-```
-
-## Future Enhancements
-
-1. **GeoMet WMS Integration**: Full WMS/WFS support with shapefile ingestion
-2. **Real-time Updates**: WebSocket for live map updates
-3. **Historical Analysis**: Time-lapse animations, trend analysis
-4. **Mobile App**: PWA with offline support
-5. **Multi-language**: English/French bilingual support
-6. **Export Options**: GeoJSON, KML format exports
-7. **Custom Annotations**: User-drawn notes on maps
+## Security & Compliance
+1. **Neon HTTP Auth**: Secured via `POSTGRES_URL` connection strings.
+2. **Vercel Blob**: Protected via `BLOB_READ_WRITE_TOKEN`.
+3. **Legal**: Every data-rendering page includes: *"Contains information licensed under the Open Government Licence – Canada."*
 
 ---
 
-**Last Updated:** 2026-03-29
-**Version:** 2.0.0 (Vercel-only deployment)
+**Last Updated:** 2026-03-30
+**Version:** 3.0.0 (Next.js Full-Stack Pivot)
