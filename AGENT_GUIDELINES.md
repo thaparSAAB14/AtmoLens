@@ -35,4 +35,21 @@ The system is capable of high-resolution vector ingestion.
 
 ---
 
+### 🔄 Multi-Model Operational Standards
+To ensure continuity between different LLM sessions:
+1. **Context First**: Start every session by reading `CONTEXT.md` to confirm the latest architectural version.
+2. **State Updates**: After major logic changes, update the "Historical Decision Log" in `CONTEXT.md`.
+3. **Project Integrity**: Stick to the 100% Next.js Full-Stack architecture as defined in the anchor points.
+4. **Data Verification**: If an API appears "Offline", ensure the caller is checking the new `/api` routes, not the legacy `/api/index.py`.
+
+---
+
+### 📊 Recommended Data & Specifications
+- **Map Processor**: `src/lib/processor.ts` (Jimp Logical Scanning).
+- **Database Connection**: `src/lib/storage.ts` (Neon Serverless HTTP).
+- **Storage Layer**: Vercel Blob (Native SDK).
+- **Frontend Framework**: Next.js 15 (App Router).
+
+---
+
 *Mission Directive compiled by Antigravity — Google DeepMind.*

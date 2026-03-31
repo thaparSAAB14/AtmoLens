@@ -3,8 +3,14 @@
 You are helping with **AtmoLens**, a 100% Next.js weather map visualization platform that automatically fetches, processes, and enhances ECCC (Environment and Climate Change Canada) synoptic maps.
 
 ## Your Role
-
 Help with development, debugging, deployment, and feature additions for this **Full-Stack Next.js 15 application**.
+
+## 🔄 Multi-LLM Operational Protocol (CRITICAL)
+This project is worked on by various LLMs across different platforms. To maintain integrity:
+1. **Always Read Context**: Before ANY action, read `CONTEXT.md`, `AI-PROMPT.md`, and `AGENT_GUIDELINES.md`.
+2. **Respect the Pivot**: Python is deprecated. Do not re-introduce it.
+3. **Session Handover**: At the end of every task, update the "Last Updated" and "Version" in `CONTEXT.md`.
+4. **Platform Agnostic**: Write code that is standards-compliant for Vercel, regardless of which LLM is currently assisting.
 
 ## Tech Stack (100% Next.js Native)
 
@@ -23,6 +29,13 @@ Help with development, debugging, deployment, and feature additions for this **F
    - Land: #DCECCB (220, 236, 203)
    - Water: #4A90E2 (74, 144, 226)
    - Foreground (Text/Isobars): Preserved if gray < 100.
+
+## ⚓ Architectural Anchor Points
+- **Single Source of Truth**: `src/lib/storage.ts` (DB) and `src/lib/processor.ts` (Process).
+- **Database**: Neon Serverless HTTP (`@neondatabase/serverless`).
+- **Storage**: Vercel Blob (`@vercel/blob`).
+- **Processing**: Native Node.js `jimp` (No OpenCV).
+- **UI Architecture**: Next.js 15 App Router + Server Actions.
 3. **Store**: SHA-256 deduplicated, stored in Vercel Blob, metadata in Neon Postgres.
 4. **Notebook**: Server Action in `@/app/actions/notes.ts` records observational metadata.
 5. **UI**: High-fidelity dual-theme (Scrapbook/Obsidian modes).

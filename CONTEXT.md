@@ -1,4 +1,5 @@
 # AtmoLens - Technical Context
+> **LLM Sync Protocol**: Any AI assistant starting a session MUST read this file in full to understand the 100% Next.js Full-Stack pivot. Do not attempt to re-introduce Python or OpenCV.
 
 ## Project Overview
 
@@ -100,6 +101,12 @@ User Browser (Global CDN)
 4. **About** (`/app/about/page.tsx`)
    - **DO NOT MODIFY** - finalized narrative asset.
 
+5. **Historical Decision Log (LLM Persistence)**
+   - **2026-03-30**: Absolute Pivot from Python/FastAPI to 100% Next.js.
+   - **Reasoning**: Vercel Python runtime limits (OpenCV binary size and TCP timeout) caused persistent 500 errors.
+   - **Solution**: Replaced with `jimp` (Node.js) and `@neondatabase/serverless` (HTTP).
+   - **Result**: "Backend Offline" error resolved; 300ms edge execution.
+
 ### API Client (`lib/api.ts`)
 - Same-domain requests to `/api/status`, `/api/maps/latest`, etc.
 - Standardized `SystemStatus` interface (Live Edge status).
@@ -149,6 +156,23 @@ CREATE TABLE observer_notes (
 1. **Neon HTTP Auth**: Secured via `POSTGRES_URL` connection strings.
 2. **Vercel Blob**: Protected via `BLOB_READ_WRITE_TOKEN`.
 3. **Legal**: Every data-rendering page includes: *"Contains information licensed under the Open Government Licence – Canada."*
+
+## Recommended Technical Data (Important)
+
+### 1. Image Processing Specs (Jimp)
+- **Library**: `jimp` (Native JS)
+- **Algorithm**: Logical pixel scanning (Spatial Thresholding).
+- **Colors**: Land (#DCECCB), Water (#4A90E2).
+- **Logic**: Preserves `gray < 100` as foreground isobars.
+
+### 2. Database Integration (Neon)
+- **Driver**: `@neondatabase/serverless` (Native HTTP).
+- **Connectivity**: Uses `neon(process.env.POSTGRES_URL)`.
+- **Note**: No persistent TCP connections; stateless edge execution.
+
+### 3. Vercel Blob
+- **Method**: `put(filename, buffer, { access: 'public' })`.
+- **Token**: `BLOB_READ_WRITE_TOKEN`.
 
 ---
 
