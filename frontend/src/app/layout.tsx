@@ -1,24 +1,19 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans, Space_Grotesk, Caveat } from "next/font/google";
+import { Bricolage_Grotesque, Fraunces, Caveat } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import StyledComponentsRegistry from "@/lib/registry";
 
-const inter = Inter({
+const bodyFont = Bricolage_Grotesque({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-body",
 });
 
-const jakarta = Plus_Jakarta_Sans({
+const displayFont = Fraunces({
   subsets: ["latin"],
-  variable: "--font-jakarta",
-});
-
-const grotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-grotesk",
+  variable: "--font-display",
 });
 
 const handwriting = Caveat({
@@ -27,15 +22,19 @@ const handwriting = Caveat({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://atmolens.priyanshu.world"),
   title: "AtmoLens — Automated ECCC Synoptic Map Enhancement",
   description:
     "Grayscale Environment Canada analysis maps transformed into color-enhanced, easy-to-read weather maps — automatically, every 30 minutes.",
   openGraph: {
     title: "AtmoLens — Atmospheric Restoration",
     description: "Real-time automated enhancement of ECCC meteorological charts.",
-    url: "https://atmolens.vercel.app",
+    url: "https://atmolens.priyanshu.world",
     siteName: "AtmoLens",
     type: "website",
+  },
+  icons: {
+    icon: "/icon.svg",
   },
   twitter: {
     card: "summary_large_image",
@@ -47,6 +46,7 @@ export const metadata: Metadata = {
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -55,7 +55,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${jakarta.variable} ${grotesk.variable} ${handwriting.variable} antialiased`}
+        className={`${bodyFont.variable} ${displayFont.variable} ${handwriting.variable} antialiased`}
       >
         <StyledComponentsRegistry>
           <ThemeProvider>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getArchive, getImageUrl, MAP_TYPE_LABELS, type ArchiveEntry } from "@/lib/api";
-import { formatTimestamp } from "@/lib/utils";
+import { formatTimestamp, formatTimestampLocal } from "@/lib/utils";
 import { Calendar, Download } from "lucide-react";
 
 export function ArchiveGallery() {
@@ -198,12 +198,15 @@ export function ArchiveGallery() {
                     {MAP_TYPE_LABELS[entry.map_type] || entry.map_type}
                   </p>
                   <p className="text-[var(--text-muted)] text-xs font-label">
-                    {entry.timestamp ? formatTimestamp(entry.timestamp) : ""}
+                    Local: {entry.timestamp ? formatTimestampLocal(entry.timestamp) : ""}
+                  </p>
+                  <p className="text-[var(--text-muted)] text-[11px] font-label">
+                    UTC: {entry.timestamp ? formatTimestamp(entry.timestamp) : ""}
                   </p>
                 </div>
 
                 {/* Download overlay */}
-                <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all">
                   <button
                     onClick={() => handleDownload(getImageUrl(entry.image_url), entry.filename)}
                     className="p-2 rounded-lg bg-[var(--surface)]/50 backdrop-blur-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all cursor-pointer"

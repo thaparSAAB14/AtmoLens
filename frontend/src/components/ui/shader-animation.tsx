@@ -42,7 +42,8 @@ export function ShaderAnimation() {
           }
         }
 
-        gl_FragColor = vec4(color, 1.0);
+        float intensity = max(max(color.r, color.g), color.b);
+        gl_FragColor = vec4(color, intensity);
       }
     `;
 
@@ -66,8 +67,9 @@ export function ShaderAnimation() {
     const mesh = new THREE.Mesh(geometry, material);
     scene.add(mesh);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setClearColor(0x000000, 0);
     container.appendChild(renderer.domElement);
 
     const onResize = () => {
@@ -105,7 +107,7 @@ export function ShaderAnimation() {
     <div
       ref={containerRef}
       className="w-full h-full"
-      style={{ background: "#000", overflow: "hidden" }}
+      style={{ background: "transparent", overflow: "hidden" }}
     />
   );
 }

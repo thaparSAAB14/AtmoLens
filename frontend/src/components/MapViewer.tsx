@@ -192,7 +192,7 @@ export function MapViewer({ selectedType }: MapViewerProps) {
       )}
 
       {/* Controls bar */}
-      <div className="flex items-center justify-between px-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
         <div className="flex items-center gap-3">
           <h3 className="text-[var(--text-primary)] font-display font-semibold">
             {MAP_TYPE_LABELS[selectedType] || selectedType}
@@ -202,7 +202,7 @@ export function MapViewer({ selectedType }: MapViewerProps) {
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           {/* Toggle original/processed */}
           <button
             onClick={() => hasOriginal && setShowOriginal((v) => !v)}
@@ -213,6 +213,7 @@ export function MapViewer({ selectedType }: MapViewerProps) {
             }`}
             disabled={!hasOriginal}
             title={hasOriginal ? "Toggle original/enhanced" : "Original not available for this map yet"}
+            aria-pressed={isShowingOriginal}
           >
             {isShowingOriginal ? "Original" : "Enhanced"}
           </button>
@@ -222,6 +223,7 @@ export function MapViewer({ selectedType }: MapViewerProps) {
             onClick={toggleFullscreen}
             className="p-1.5 rounded-lg bg-[var(--surface-container-high)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
             title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           >
             {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
           </button>
@@ -239,6 +241,7 @@ export function MapViewer({ selectedType }: MapViewerProps) {
               }
               className="p-1.5 rounded-lg bg-[var(--surface-container-high)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all"
               title="Download"
+              aria-label="Download map image"
             >
               <Download size={16} />
             </button>

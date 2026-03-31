@@ -1,19 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
 import { MapViewer } from "@/components/MapViewer";
 import { MapTypeSelector } from "@/components/MapTypeSelector";
 import { GisLayerSelector } from "@/components/GisLayerSelector";
 import { StatusBar } from "@/components/StatusBar";
-
-const WarpShaderBackground = dynamic(
-  () =>
-    import("@/components/ui/warp-shader").then(
-      (mod) => mod.WarpShaderBackground
-    ),
-  { ssr: false }
-);
+import MagnetLines from "@/components/MagnetLines";
 
 export default function MapsPage() {
   const [selectedMapType, setSelectedMapType] = useState("surface_12z");
@@ -22,8 +14,20 @@ export default function MapsPage() {
   return (
     <div>
       {/* ─── Warp Shader Background ─────────────────────────────────────── */}
-      <div className="fixed inset-0 -z-10 opacity-40 dark:opacity-40">
-        <WarpShaderBackground />
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute inset-0 bg-[var(--background)]" />
+        <div className="absolute inset-0 flex items-center justify-center opacity-50 blur-[6px]">
+          <MagnetLines
+            rows={12}
+            columns={12}
+            containerSize="90vmin"
+            lineColor="var(--accent)"
+            lineWidth="0.45vmin"
+            lineHeight="4vmin"
+            baseAngle={-12}
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--background)]/30 to-[var(--background)]" />
       </div>
 
       {/* ─── Status Bar ─────────────────────────────────────────────────── */}
@@ -37,7 +41,7 @@ export default function MapsPage() {
           Live <span className="gradient-text">Maps</span>
         </h1>
         <p className="text-[var(--text-secondary)] text-sm mt-2">
-          Real-time color-enhanced synoptic maps from Environment Canada
+          Color-enhanced ECCC synoptic maps, with quick toggles, downloads, and local time readouts.
         </p>
       </div>
 
