@@ -33,9 +33,6 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
-  verification: {
-    google: "PLACEHOLDER_GOOGLE_VERIFICATION_CODE", // Replace via Search Console
-  },
   openGraph: {
     title: "AtmoLens — Atmospheric Restoration",
     description: "Real-time automated enhancement of ECCC meteorological charts.",
