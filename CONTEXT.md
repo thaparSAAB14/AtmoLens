@@ -111,6 +111,7 @@ Behavior:
 - 2026-03-31: Completed legal exposure review and attribution hardening.
 - 2026-04-02: Removed all Herbie/Geomet overlays to strictly focus on a pure serverless map processing pipeline.
 - 2026-04-02: Fixed cron ingestion silence caused by Jimp ESM resolution and Blob access issues.
+- 2026-04-02: Production readiness push: Appended strict security headers (HSTS, CSP), automatic `sitemap.xml`/`robots.txt` generation, and SEO keywords/canonical URLs for Google Search validation.
 
 ---
 

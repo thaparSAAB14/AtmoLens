@@ -26,6 +26,16 @@ export const metadata: Metadata = {
   title: "AtmoLens — Automated ECCC Synoptic Map Enhancement",
   description:
     "Grayscale Environment Canada analysis maps transformed into color-enhanced, easy-to-read weather maps — automatically, every 30 minutes.",
+  keywords: [
+    "ECCC", "weather maps", "synoptic charts", "meteorology", 
+    "Canada weather", "automated maps", "GIS processing"
+  ],
+  alternates: {
+    canonical: "/",
+  },
+  verification: {
+    google: "PLACEHOLDER_GOOGLE_VERIFICATION_CODE", // Replace via Search Console
+  },
   openGraph: {
     title: "AtmoLens — Atmospheric Restoration",
     description: "Real-time automated enhancement of ECCC meteorological charts.",
