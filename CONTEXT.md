@@ -110,6 +110,7 @@ Behavior:
 - 2026-03-30: Improved Maps/Archive UX and local-time display.
 - 2026-03-31: Completed legal exposure review and attribution hardening.
 - 2026-04-02: Removed all Herbie/Geomet overlays to strictly focus on a pure serverless map processing pipeline.
+- 2026-04-02: Fixed cron ingestion silence caused by Jimp ESM resolution and Blob access issues.
 
 ---
 

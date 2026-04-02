@@ -20,8 +20,8 @@ const SOURCES: Record<string, string> = {
 
 const PROCESSING_VERSION = "enhancer-v2";
 
-const BLOB_ACCESS: "public" | "private" =
-    process.env.BLOB_ACCESS === "public" ? "public" : "private";
+const BLOB_ACCESS: "public" = "public"; // Force public access
+    // process.env.BLOB_ACCESS removed
 
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
     const controller = new AbortController();

@@ -1,4 +1,5 @@
-import { Jimp } from "jimp";
+import * as JimpOriginal from "jimp";
+const Jimp = (JimpOriginal as any).Jimp || (JimpOriginal as any).default || JimpOriginal;
 
 type JimpImage = {
   bitmap: { width: number; height: number; data: Buffer };
@@ -27,16 +28,6 @@ const OCEAN_SEED_POINTS: ReadonlyArray<readonly [number, number]> = [
   [0.90, 0.72], // Atlantic lower edge
   [0.55, 0.12], // Arctic Ocean
 ];
-
-function getJimpRead(): (rawBytes: Buffer) => Promise<JimpImage> {
-  const read = (Jimp as unknown as { read?: (rawBytes: Buffer) => Promise<JimpImage> })
-    .read;
-  if (typeof read !== "function") {
-    throw new Error("Jimp.read is unavailable");
-  }
-  // Jimp.read relies on `this` (e.g. `this.fromBuffer`) so we must preserve context.
-  return (rawBytes: Buffer) => read.call(Jimp, rawBytes);
-}
 
 async function getBuffer(image: JimpImage, mime: string): Promise<Buffer> {
   if (typeof image.getBufferAsync === "function") {
@@ -230,11 +221,11 @@ function applyTone(pixelData: Buffer, offset: number, tone: RGB, darken: boolean
   pixelData[offset] = Math.round(tone.r * multiplier);
   pixelData[offset + 1] = Math.round(tone.g * multiplier);
   pixelData[offset + 2] = Math.round(tone.b * multiplier);
+  pixelData[offset + 3] = 255; // Fix opacity channel explicitly
 }
 
 export async function processImage(rawBytes: Buffer, mapType?: string): Promise<Buffer> {
-  const read = getJimpRead();
-  const image = await read(rawBytes);
+  const image = await Jimp.read(rawBytes);
   const { width, height, data } = image.bitmap;
   const palette = selectPalette(mapType);
 
@@ -270,7 +261,6 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
 }
 
 export async function convertOriginalToPng(rawBytes: Buffer): Promise<Buffer> {
-    const read = getJimpRead();
-    const image = await read(rawBytes);
+    const image = await Jimp.read(rawBytes);
     return await getBuffer(image, "image/png");
 }
