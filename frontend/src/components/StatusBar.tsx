@@ -1,25 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getHerbieStatus, getStatus, type HerbiePipelineStatus, type SystemStatus } from "@/lib/api";
+import { getStatus, type SystemStatus } from "@/lib/api";
 import { timeAgo } from "@/lib/utils";
 import { Clock, Database, RefreshCw } from "lucide-react";
 
 export function StatusBar() {
   const [status, setStatus] = useState<SystemStatus | null>(null);
-  const [herbieStatus, setHerbieStatus] = useState<HerbiePipelineStatus | null>(null);
   const [error, setError] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [data, herbie] = await Promise.all([
-        getStatus(),
-        getHerbieStatus().catch(() => null),
-      ]);
+      const data = await getStatus();
       setStatus(data);
-      if (herbie) setHerbieStatus(herbie);
       setError(false);
     } catch {
       setError(true);
@@ -77,7 +72,6 @@ export function StatusBar() {
 
   const canForceSync = process.env.NODE_ENV !== "production";
   const isRunning = status.status === "online" || (status.scheduler && status.scheduler.running);
-  const herbieReady = herbieStatus?.status === "ready";
 
   return (
     <div className="flex flex-wrap items-center gap-4 px-4 py-2.5 rounded-xl bg-[var(--surface-container)] backdrop-blur-sm">
@@ -105,18 +99,6 @@ export function StatusBar() {
         <span>{status.archive_count} maps indexed</span>
       </div>
 
-      {herbieStatus && (
-        <div className="flex items-center gap-1.5 text-xs">
-          <span
-            className={`w-2 h-2 rounded-full ${
-              herbieReady ? "bg-cyan-400" : "bg-zinc-500"
-            }`}
-          />
-          <span className="text-[var(--text-muted)]">
-            Herbie: {herbieReady ? "ready" : "waiting"}
-          </span>
-        </div>
-      )}
 
       {canForceSync && (
         <div className="ml-auto hidden sm:flex items-center gap-2">

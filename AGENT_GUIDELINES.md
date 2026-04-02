@@ -23,19 +23,7 @@
 - Source: ECCC analysis GIF endpoints
 - Storage: Vercel Blob + Neon metadata (`maps` table)
 
-### B) Overlay system (required)
-- RDPA generated overlay: `frontend/src/app/api/geomet/rdpa/route.ts`
-- GeoMet WMS fallback proxy: `frontend/src/app/api/geomet/wms/route.ts`
 
-### C) Herbie model-guidance pipeline (optional sidecar)
-- Folder: `pipelines/herbie`
-- Script: `pipelines/herbie/generate_gdps_t2m_overlay.py`
-- Output artifacts:
-  - `frontend/public/herbie/gdps_t2m_latest.png`
-  - `frontend/public/herbie/gdps_t2m_latest.json`
-- Runtime consumption:
-  - `GET /api/herbie/gdps-t2m`
-  - `GET /api/herbie/status`
 
 ---
 

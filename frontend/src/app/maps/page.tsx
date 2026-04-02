@@ -3,15 +3,11 @@
 import { useState } from "react";
 import { MapViewer } from "@/components/MapViewer";
 import { MapTypeSelector } from "@/components/MapTypeSelector";
-import { GisLayerSelector } from "@/components/GisLayerSelector";
 import { StatusBar } from "@/components/StatusBar";
 import MagnetLines from "@/components/MagnetLines";
-import { IS_WMS_UI_ENABLED } from "@/lib/geomet";
 
 export default function MapsPage() {
   const [selectedMapType, setSelectedMapType] = useState("surface_12z");
-  const [selectedLayers, setSelectedLayers] = useState<string[]>([]);
-  const wmsEnabled = IS_WMS_UI_ENABLED;
 
   return (
     <div>
@@ -43,7 +39,7 @@ export default function MapsPage() {
           Live <span className="gradient-text">Maps</span>
         </h1>
         <p className="text-[var(--text-secondary)] text-sm mt-2">
-          Color-enhanced ECCC synoptic maps with RDPA overlays plus optional Herbie-generated GDPS guidance.
+          Color-enhanced processing of ECCC synoptic maps.
         </p>
       </div>
 
@@ -56,21 +52,12 @@ export default function MapsPage() {
                 Map Controls
               </h3>
               <MapTypeSelector selected={selectedMapType} onChange={setSelectedMapType} />
-              
-              <div className="border-t border-[var(--border)] pt-4 mt-4" />
-              <GisLayerSelector
-                selected={selectedLayers}
-                onChange={setSelectedLayers}
-                wmsEnabled={wmsEnabled}
-              />
             </div>
           </aside>
 
           <main>
             <MapViewer
               selectedType={selectedMapType}
-              selectedLayers={selectedLayers}
-              wmsEnabled={wmsEnabled}
             />
           </main>
         </div>

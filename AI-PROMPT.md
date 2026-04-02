@@ -4,7 +4,7 @@ You are working on **AtmoLens**, a Next.js weather-map platform that:
 - ingests ECCC analysis maps,
 - enhances readability,
 - stores map history,
-- serves maps and overlays from one domain.
+- serves maps from one domain.
 
 ---
 
@@ -25,10 +25,7 @@ Deliver production-safe improvements to a **Next.js 16 App Router** codebase wit
   - Vercel Blob (`@vercel/blob`)
 - No standalone Python API service in production runtime.
 
-### Optional sidecar (allowed)
-- Python is allowed for offline/sidecar pipelines only, currently:
-  - `pipelines/herbie/generate_gdps_t2m_overlay.py`
-- This sidecar writes static artifacts consumed by Next.js routes.
+
 
 ---
 
@@ -45,7 +42,6 @@ Deliver production-safe improvements to a **Next.js 16 App Router** codebase wit
   - keep structural layout stable,
   - allow content/copy refreshes and light tweaks.
 - Weather pages must keep attribution visible.
-- Prefer robust fallback behavior over hard failures in UI overlays.
 
 ---
 
@@ -53,10 +49,6 @@ Deliver production-safe improvements to a **Next.js 16 App Router** codebase wit
 - `frontend/src/lib/storage.ts` - DB schema and map metadata access
 - `frontend/src/lib/processor.ts` - map enhancement pipeline
 - `frontend/src/app/api/cron/fetch-maps/route.ts` - ingestion loop
-- `frontend/src/app/api/geomet/rdpa/route.ts` - generated RDPA overlays
-- `frontend/src/app/api/geomet/wms/route.ts` - WMS proxy fallback
-- `frontend/src/app/api/herbie/gdps-t2m/route.ts` - Herbie overlay serving
-- `frontend/src/app/api/herbie/status/route.ts` - Herbie artifact status
 
 ---
 
@@ -66,8 +58,6 @@ Deliver production-safe improvements to a **Next.js 16 App Router** codebase wit
 - Validate:
   - `/api/status`
   - `/api/maps/latest`
-  - `/api/geomet/rdpa`
-  - `/api/herbie/status`
 
 ---
 

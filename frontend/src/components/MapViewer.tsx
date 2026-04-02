@@ -2,25 +2,20 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getLatestMaps, getImageUrl, MAP_TYPE_LABELS, type MapInfo } from "@/lib/api";
-import { GEOMET_ATTRIBUTION, GEOMET_LAYERS, type GeoMetLayer } from "@/lib/geomet";
 import { formatTimestamp, formatTimestampLocal, timeAgo } from "@/lib/utils";
 import { Download, Maximize2, Minimize2 } from "lucide-react";
 
 interface MapViewerProps {
   selectedType: string;
-  selectedLayers: string[];
-  wmsEnabled: boolean;
 }
 
-export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewerProps) {
+export function MapViewer({ selectedType }: MapViewerProps) {
   const [maps, setMaps] = useState<Record<string, MapInfo>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [overlayWarning, setOverlayWarning] = useState<string | null>(null);
-  const [generatedFallbackLayers, setGeneratedFallbackLayers] = useState<Set<string>>(new Set());
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const fetchMaps = useCallback(async () => {
@@ -102,35 +97,6 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
   const localTimestamp = currentMap?.timestamp ? formatTimestampLocal(currentMap.timestamp) : "";
 
   const hasAnyData = Object.keys(maps).length > 0;
-  const canUseGeoMet = selectedType.startsWith("surface_");
-  const geometBbox = "-175,10,-15,85"; // minLon,minLat,maxLon,maxLat (WMS 1.1.1 + EPSG:4326)
-  const selectedLayersKey = selectedLayers.join("|");
-  const selectedGeoLayers = GEOMET_LAYERS.filter(
-    (layer) =>
-      selectedLayers.includes(layer.id) && (layer.source === "herbie" || wmsEnabled)
-  );
-
-  const buildWmsOverlaySrc = useCallback((layer: GeoMetLayer) => {
-    const qs = new URLSearchParams({
-      service: "WMS",
-      version: layer.version ?? "1.1.1",
-      request: "GetMap",
-      layers: layer.layer,
-      styles: layer.style ?? "",
-      transparent: "true",
-      format: layer.format ?? "image/png",
-      srs: layer.srs ?? "EPSG:4326",
-      bbox: geometBbox,
-      width: "1400",
-      height: "900",
-    });
-    return `/api/geomet/wms?${qs.toString()}`;
-  }, [geometBbox]);
-
-  useEffect(() => {
-    setOverlayWarning(null);
-    setGeneratedFallbackLayers(new Set());
-  }, [selectedType, selectedLayersKey, wmsEnabled]);
 
   if (loading) {
     return (
@@ -224,11 +190,6 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
           </button>
         </div>
       )}
-      {overlayWarning && (
-        <div className="rounded-xl border border-orange-500/30 bg-orange-500/10 px-4 py-3">
-          <p className="text-orange-200 text-sm">{overlayWarning}</p>
-        </div>
-      )}
 
       {/* Controls bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
@@ -301,64 +262,12 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
           }`}
         >
           {imageUrl && (
-            <>
-              <img
-                src={imageUrl}
-                alt={MAP_TYPE_LABELS[selectedType] || selectedType}
-                className="w-full h-full object-contain"
-                draggable={false}
-              />
-              {canUseGeoMet &&
-                selectedGeoLayers.map((layer) => {
-                  const tryGeneratedOverlay =
-                    layer.source === "generated" &&
-                    !!layer.collectionId &&
-                    !generatedFallbackLayers.has(layer.id);
-                  const isHerbieOverlay = layer.source === "herbie";
-                  const overlaySrc =
-                    tryGeneratedOverlay
-                      ? `/api/geomet/rdpa?collection=${encodeURIComponent(layer.collectionId!)}&width=1400&height=900&bbox=${encodeURIComponent(geometBbox)}`
-                      : isHerbieOverlay
-                      ? `${layer.url ?? "/api/herbie/gdps-t2m"}?v=${encodeURIComponent(
-                          currentMap?.timestamp ?? ""
-                        )}`
-                      : buildWmsOverlaySrc(layer);
-
-                  return (
-                    <img
-                      key={layer.id}
-                      src={overlaySrc}
-                      alt={`${layer.name} overlay`}
-                      className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-                      style={{ opacity: layer.opacity ?? 0.6 }}
-                      onError={() => {
-                        if (tryGeneratedOverlay) {
-                          setGeneratedFallbackLayers((previous) => {
-                            if (previous.has(layer.id)) return previous;
-                            const next = new Set(previous);
-                            next.add(layer.id);
-                            return next;
-                          });
-                          setOverlayWarning(
-                            `${layer.name} generated overlay is temporarily unavailable. Falling back to GeoMet layer.`
-                          );
-                          return;
-                        }
-                        if (isHerbieOverlay) {
-                          setOverlayWarning(
-                            "Herbie overlay is not ready yet. Run the Herbie pipeline to refresh GDPS output."
-                          );
-                          return;
-                        }
-                        setOverlayWarning(
-                          "One or more weather overlays could not be loaded right now. Try toggling the layer or refreshing."
-                        );
-                      }}
-                      draggable={false}
-                    />
-                  );
-                })}
-            </>
+            <img
+              src={imageUrl}
+              alt={MAP_TYPE_LABELS[selectedType] || selectedType}
+              className="w-full h-full object-contain"
+              draggable={false}
+            />
           )}
         </div>
 
@@ -371,19 +280,6 @@ export function MapViewer({ selectedType, selectedLayers, wmsEnabled }: MapViewe
             UTC: {utcTimestamp}
           </p>
         </div>
-        {canUseGeoMet && selectedGeoLayers.length > 0 && (
-          <div className="absolute right-3 bottom-3 max-w-[min(60ch,60%)] bg-[var(--surface)]/80 backdrop-blur-sm rounded-lg px-3 py-2">
-            <p className="text-[10px] text-[var(--text-secondary)] font-label">Overlay: {selectedGeoLayers.map((l) => l.name).join(", ")}</p>
-            <p className="text-[10px] text-[var(--text-secondary)] font-label">
-              Source:{" "}
-              {selectedGeoLayers.some((l) => l.source === "herbie")
-                ? "Herbie (GDPS) + GeoMet"
-                : "RDPA generated in-house"}
-              {generatedFallbackLayers.size > 0 ? ` (GeoMet fallback: ${generatedFallbackLayers.size})` : ""}
-            </p>
-            <p className="text-[10px] text-[var(--text-muted)]">{GEOMET_ATTRIBUTION}</p>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -30,27 +30,6 @@ AtmoLens ingests Environment and Climate Change Canada (ECCC) synoptic analysis 
   5. upload original + processed to Blob
   6. store metadata in Postgres
 
-## 2) RDPA precipitation overlay (production)
-- Generated route: `GET /api/geomet/rdpa`
-- Fallback route: `GET /api/geomet/wms`
-- Source APIs:
-  - `https://api.weather.gc.ca/collections/*/coverage`
-  - `https://geo.weather.gc.ca/geomet`
-
-## 3) Herbie GDPS model-guidance overlay (optional sidecar)
-- Pipeline script: `pipelines/herbie/generate_gdps_t2m_overlay.py`
-- Runtime routes:
-  - `GET /api/herbie/gdps-t2m`
-  - `GET /api/herbie/status`
-- Deterministic configuration:
-  - `model=gdps`
-  - `product=15km/grib2/lat_lon`
-  - `variable=TMP`
-  - `level=TGL_2`
-  - `fxx=0`
-- Artifacts:
-  - `frontend/public/herbie/gdps_t2m_latest.png`
-  - `frontend/public/herbie/gdps_t2m_latest.json`
 
 ---
 
@@ -60,10 +39,7 @@ AtmoLens ingests Environment and Climate Change Canada (ECCC) synoptic analysis 
 - `/api/maps/latest/[mapType]`
 - `/api/maps/archive`
 - `/api/maps/archive/[mapType]`
-- `/api/geomet/rdpa`
-- `/api/geomet/wms`
-- `/api/herbie/gdps-t2m`
-- `/api/herbie/status`
+
 - `/api/blob`
 - `/api/cron/fetch-maps`
 - `/api/cron/cleanup`
@@ -89,20 +65,6 @@ npm run lint
 npm run build
 ```
 
----
-
-## Herbie pipeline setup (optional)
-```bash
-python -m venv .venv-herbie
-. .venv-herbie/Scripts/activate
-pip install -r pipelines/herbie/requirements.txt
-python pipelines/herbie/generate_gdps_t2m_overlay.py --verbose
-```
-
-If you need a specific model cycle:
-```bash
-python pipelines/herbie/generate_gdps_t2m_overlay.py --run-utc 2026-03-31T00:00:00Z
-```
 
 ---
 
@@ -117,7 +79,6 @@ python pipelines/herbie/generate_gdps_t2m_overlay.py --run-utc 2026-03-31T00:00:
 ---
 
 ## References
-- Herbie repository: https://github.com/blaylockbk/Herbie
-- Herbie GDPS docs: https://herbie.readthedocs.io/en/2025.12.0/gallery/eccc_models/gdps.html
+
 - ECCC data licence: https://eccc-msc.github.io/open-data/licence/readme_en/
 - ECCC usage policy: https://eccc-msc.github.io/open-data/usage-policy/readme_en/

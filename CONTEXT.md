@@ -6,8 +6,7 @@ AtmoLens is a Next.js full-stack weather map system that:
 - fetches ECCC analysis maps,
 - enhances map readability,
 - stores original + processed history,
-- serves live and archive APIs,
-- overlays georeferenced precipitation and model-guidance layers.
+- serves live and archive APIs.
 
 ---
 
@@ -51,36 +50,6 @@ Surface maps use stronger contrast; upper-air maps use softer tones.
 
 ---
 
-## Overlay architecture
-## RDPA (production)
-- Generated route: `frontend/src/app/api/geomet/rdpa/route.ts`
-- WMS fallback: `frontend/src/app/api/geomet/wms/route.ts`
-- Upstream sources:
-  - `https://api.weather.gc.ca/collections/*/coverage`
-  - `https://geo.weather.gc.ca/geomet`
-- Safeguards:
-  - layer whitelist
-  - CRS/format whitelist
-  - non-image upstream rejection
-
-## Herbie GDPS (optional sidecar)
-- Overlay route: `frontend/src/app/api/herbie/gdps-t2m/route.ts`
-- Status route: `frontend/src/app/api/herbie/status/route.ts`
-- Sidecar script: `pipelines/herbie/generate_gdps_t2m_overlay.py`
-- Deterministic pipeline parameters:
-  - `model=gdps`
-  - `product=15km/grib2/lat_lon`
-  - `variable=TMP`
-  - `level=TGL_2`
-  - `fxx=0`
-- Artifact files:
-  - `frontend/public/herbie/gdps_t2m_latest.png`
-  - `frontend/public/herbie/gdps_t2m_latest.json`
-
-Important: Herbie is not executed in Vercel runtime; it is an optional external/offline pipeline that produces static artifacts consumed by Next.js.
-
----
-
 ## Data model
 File: `frontend/src/lib/storage.ts`
 
@@ -110,10 +79,7 @@ Behavior:
 - `/api/maps/latest/[mapType]`
 - `/api/maps/archive`
 - `/api/maps/archive/[mapType]`
-- `/api/geomet/rdpa`
-- `/api/geomet/wms`
-- `/api/herbie/gdps-t2m`
-- `/api/herbie/status`
+
 - `/api/blob`
 - `/api/cron/fetch-maps`
 - `/api/cron/cleanup`
@@ -135,8 +101,6 @@ Behavior:
      - ECCC usage policy
    - open risks:
      - legacy product decommission notices by ECCC
-     - external dependency reliability for optional Herbie sidecar
-     - Python + eccodes availability where sidecar runs
 
 ---
 
@@ -144,11 +108,8 @@ Behavior:
 - 2026-03-30: Migrated from Python/OpenCV backend to 100% Next.js runtime.
 - 2026-03-30: Stabilized Blob proxy + cron ingestion.
 - 2026-03-30: Improved Maps/Archive UX and local-time display.
-- 2026-03-31: Added RDPA-first overlays with WMS fallback hardening.
-- 2026-03-31: Upgraded map enhancer to adaptive multi-step pipeline.
 - 2026-03-31: Completed legal exposure review and attribution hardening.
-- 2026-03-31: Added in-house RDPA coverage renderer.
-- 2026-03-31: Integrated Herbie GDPS deterministic sidecar pipeline + overlay/status routes.
+- 2026-04-02: Removed all Herbie/Geomet overlays to strictly focus on a pure serverless map processing pipeline.
 
 ---
 

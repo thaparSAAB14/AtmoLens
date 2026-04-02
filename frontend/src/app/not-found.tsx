@@ -8,7 +8,7 @@ export default function NotFound() {
       curvedTextTop="AtmoLens Weather Bureau"
       curvedTextBottom="Synoptic Mapping Division"
       heading="(404) This chart drifted off the map."
-      subtext="The page is missing, but the live map feed is still updating every 30 minutes."
+      subtext="The page is missing, but our automated map feed is still running."
       backButtonLabel="Back to Home"
       backButtonHref="/"
     />
