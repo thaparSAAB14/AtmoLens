@@ -1,58 +1,75 @@
-# AtmoLens - Agent Guidelines
-**Status:** Production (Next.js full-stack) + optional Herbie sidecar pipeline
+# AtmoLens Agent Guidelines
+**Scope:** Coding agents working in this repository.
 
 ---
 
-## 1) Critical guardrails
-1. **No browser dependency for coding tasks**
-   - Solve issues by reading/editing code and running tests/build commands.
-2. **Runtime architecture is Next.js API routes**
-   - Production backend logic belongs in `frontend/src/app/api/*`.
-   - Do not re-introduce a separate Python web backend.
-3. **About page scope**
-   - Keep `frontend/src/app/about/page.tsx` layout stable.
-   - Copy/content and light non-structural updates are allowed.
-4. **Attribution requirement**
-   - Weather-facing UI must include ECCC attribution and licensing text.
+## 1) Non-negotiable constraints
+1. **Production runtime stays Next.js-only**
+   - Backend logic must live in `frontend/src/app/api/*`.
+   - Do not introduce a standalone Python API server.
+2. **About page policy**
+   - `frontend/src/app/about/page.tsx` layout is stable.
+   - Content and light non-structural adjustments are allowed.
+3. **Attribution policy**
+   - Any weather data UI must keep ECCC licensing + attribution text.
+4. **No silent behavior changes**
+   - If API contract changes, update docs and affected UI consumers.
 
 ---
 
-## 2) Approved data pipelines
-### A) Core production ingestion (required)
-- Route: `frontend/src/app/api/cron/fetch-maps/route.ts`
-- Source: ECCC analysis GIF endpoints
-- Storage: Vercel Blob + Neon metadata (`maps` table)
+## 2) Pipeline architecture expectations
+Current ingest route: `frontend/src/app/api/cron/fetch-maps/route.ts`
 
+Required characteristics:
+- advisory lock to avoid overlapping runs
+- explicit stage flow: fetch -> validate -> process -> store
+- run/item telemetry persisted in DB
+- per-map isolation (single map failure should not crash whole run)
+- deterministic dedupe by source hash + processing version
 
-
----
-
-## 3) Visual and UX standards
-- Light mode: scrapbook feel (`#fdfbf0`) with tactile depth.
-- Dark mode: obsidian analysis mode (`#121213`) with high contrast.
-- Maintain smooth theme transitions and mobile-first behavior.
-- Avoid large structural redesigns unless explicitly requested.
+Do not regress these characteristics when refactoring.
 
 ---
 
-## 4) Documentation maintenance rules
-- Before major edits, read:
-  - `CONTEXT.md`
-  - `AI-PROMPT.md`
-  - `AGENT_GUIDELINES.md`
-- After major edits, update:
-  - `CONTEXT.md` (decision log + version)
-  - `README.md` (operator-facing instructions)
-- Keep docs synchronized with real code paths and endpoints.
+## 3) Database change rules
+- Keep schema updates backward-compatible (`ADD COLUMN IF NOT EXISTS`, non-breaking migrations).
+- Preserve existing APIs (`/api/maps/latest`, `/api/maps/archive`) while extending responses safely.
+- Log operational state in DB for incident debugging.
 
 ---
 
-## 5) Reliability principles
-- Prefer deterministic logic over implicit defaults.
-- Fail fast on invalid upstream payloads instead of silently guessing.
-- Preserve backward compatibility for existing map/archive APIs.
-- Keep legal text explicit (license + source + non-endorsement).
+## 4) Archive UX rules
+- Archive must support:
+  - group/type filtering
+  - date hierarchy (Year > Month > Day)
+  - timeline jumps
+  - metadata visibility (source/ingest times, sizes, processor version)
+- Keep UI responsive and mobile-friendly.
 
 ---
 
-*Guideline owner: AtmoLens maintainers.*
+## 5) Operations and reliability
+- `/api/status` must expose enough data to diagnose stale ingestion quickly.
+- Prefer deterministic failures over hidden fallback guesses.
+- Keep processing within serverless memory/time constraints.
+- Use sequential map processing unless a safe parallel strategy is proven.
+
+---
+
+## 6) Documentation protocol
+After major changes, update:
+- `CONTEXT.md` (architecture + decision log + version)
+- `README.md` (operator-facing behavior)
+- `MAINTENANCE.md` (runbook/incident response)
+- `AI-PROMPT.md` and this file when workflow assumptions change
+
+---
+
+## 7) Style and scope discipline
+- Make focused changes tied to user objective.
+- Remove stale or contradictory legacy guidance.
+- Prefer clear naming and explicit metadata contracts.
+
+---
+
+**Last Updated:** 2026-04-04

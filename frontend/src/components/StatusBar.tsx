@@ -72,6 +72,8 @@ export function StatusBar() {
 
   const canForceSync = process.env.NODE_ENV !== "production";
   const isRunning = status.status === "online" || (status.scheduler && status.scheduler.running);
+  const stale = Boolean(status.ingest_health?.stale);
+  const latestRunStatus = String((status.ingest_health?.latest_run as { status?: string } | null)?.status ?? "");
 
   return (
     <div className="flex flex-wrap items-center gap-4 px-4 py-2.5 rounded-xl bg-[var(--surface-container)] backdrop-blur-sm">
@@ -79,11 +81,11 @@ export function StatusBar() {
       <div className="flex items-center gap-2">
         <div
           className={`w-2 h-2 rounded-full ${
-            isRunning ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
+            isRunning && !stale ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
           }`}
         />
         <span className="text-[var(--text-secondary)] text-xs font-label uppercase">
-          {isRunning ? "Live Edge" : "Offline"}
+          {isRunning && !stale ? "Autonomous Live" : stale ? "Stale Feed" : "Offline"}
         </span>
       </div>
 
@@ -99,6 +101,12 @@ export function StatusBar() {
         <span>{status.archive_count} maps indexed</span>
       </div>
 
+      {latestRunStatus && (
+        <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-xs">
+          <span className="uppercase text-[10px] tracking-widest">Run:</span>
+          <span>{latestRunStatus}</span>
+        </div>
+      )}
 
       {canForceSync && (
         <div className="ml-auto hidden sm:flex items-center gap-2">

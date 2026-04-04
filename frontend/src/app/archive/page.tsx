@@ -6,18 +6,18 @@ import { Database, Filter, Download, Clock } from "lucide-react";
 
 const archiveHighlights = [
   {
-    title: "Filter fast",
-    description: "Jump between surface and upper-air map types in one tap.",
+    title: "Hierarchical browse",
+    description: "Navigate Type → Year → Month → Day without losing context.",
     icon: Filter,
   },
   {
-    title: "Download instantly",
-    description: "Grab enhanced PNGs or original GIFs straight from each tile.",
+    title: "Metadata-rich cards",
+    description: "See map time, ingest time, file sizes, and processor version at a glance.",
     icon: Download,
   },
   {
-    title: "Time clarity",
-    description: "Entries show local time with UTC listed underneath.",
+    title: "Timeline jumps",
+    description: "Use daily timeline chips for rapid historical lookup.",
     icon: Clock,
   },
 ];
@@ -42,7 +42,7 @@ export default function ArchivePage() {
           >
             <Database size={14} className="text-[var(--accent)]" />
             <span className="text-[var(--text-secondary)] text-sm font-label">
-              7-Day Rolling Archive
+              Autonomous Historical Archive
             </span>
           </motion.div>
 
@@ -60,8 +60,8 @@ export default function ArchivePage() {
             animate="show"
             variants={fadeUp}
           >
-            Browse the last week of processed synoptic charts, then filter, compare,
-            and download without losing context.
+            Browse by map family, year, month, and day with ingest metadata, timeline quick-jumps,
+            and one-click downloads for both enhanced and original charts.
           </motion.p>
 
           <div className="mt-10 grid gap-5 sm:grid-cols-3 text-left">

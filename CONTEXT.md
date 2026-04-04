@@ -1,75 +1,94 @@
 # AtmoLens - Technical Context
-> Read this file before architecture-level changes.
+> Read before making architecture-level changes.
 
-## System summary
-AtmoLens is a Next.js full-stack weather map system that:
-- fetches ECCC analysis maps,
-- enhances map readability,
-- stores original + processed history,
-- serves live and archive APIs.
+## Project state
+AtmoLens now operates as an autonomous weather server on Vercel:
+- periodic ingest with run-level locking,
+- persistent pipeline telemetry,
+- deterministic deduplication,
+- hierarchical archive navigation with metadata.
 
 ---
 
 ## Runtime architecture
-- **Deployment:** Vercel
-- **Framework:** Next.js 16 App Router
-- **Frontend:** React 19 + TypeScript + Tailwind CSS 4
-- **Backend:** Route handlers in `frontend/src/app/api/*`
-- **Database:** Neon Postgres (`@neondatabase/serverless`)
-- **Object storage:** Vercel Blob (`@vercel/blob`)
-- **Image processing:** `jimp` (`frontend/src/lib/processor.ts`)
-- **Schedulers:** Vercel Cron
-  - `/api/cron/fetch-maps` every 30 minutes
-  - `/api/cron/cleanup` daily
+- **Frontend:** Next.js 16 + React 19 (`frontend/src/app/*`)
+- **Backend:** Next.js route handlers (`frontend/src/app/api/*`)
+- **DB:** Neon Postgres (`@neondatabase/serverless`)
+- **Blob:** Vercel Blob (`@vercel/blob`)
+- **Processor:** `jimp` adaptive enhancement (`frontend/src/lib/processor.ts`)
+- **Scheduler:** Vercel Cron (`/api/cron/fetch-maps`, `/api/cron/cleanup`)
 
 ---
 
-## Primary ingestion flow
-1. Fetch latest ECCC source GIF per map type.
-2. Build hash using processing version + map type + source bytes.
-3. Skip ingest if newest row hash for that map type is unchanged.
-4. Enhance source map through adaptive processor.
-5. Upload processed PNG + original GIF to Blob.
-6. Store metadata row in Postgres `maps` table.
-7. Serve latest and archive via same-domain APIs.
+## Autonomous pipeline design
+Route: `frontend/src/app/api/cron/fetch-maps/route.ts`
 
----
+Execution model:
+1. Acquire Postgres advisory lock.
+2. Create `ingest_runs` row.
+3. For each map source:
+   - fetch with retries and timeout
+   - validate content type + byte size
+   - compute source hash
+   - dedupe with `(map_type, source_hash, processing_version)`
+   - process with timeout guard
+   - upload to Blob
+   - insert map metadata row
+   - insert item log row (`ingest_items`)
+4. Finalize run summary (`ok/partial/failed`).
+5. Release advisory lock.
 
-## Enhancement pipeline (processor)
-File: `frontend/src/lib/processor.ts`
-
-Steps:
-1. Convert RGBA to luminance map.
-2. Compute bounded Otsu threshold.
-3. Build + refine foreground mask.
-4. Build ocean mask via seeded flood-fill.
-5. Apply map-type palette while preserving dark linework.
-6. Export PNG.
-
-Surface maps use stronger contrast; upper-air maps use softer tones.
+Self-healing behavior:
+- partial failures are isolated per map type
+- transient upstream failures are retried
+- stale-feed detection is exposed in `/api/status`
 
 ---
 
 ## Data model
-File: `frontend/src/lib/storage.ts`
+Primary table: `maps`
 
-`maps` columns:
-- `id SERIAL PRIMARY KEY`
-- `map_type TEXT NOT NULL`
-- `filename TEXT NOT NULL`
-- `blob_url TEXT NOT NULL`
-- `original_blob_url TEXT`
-- `timestamp TIMESTAMPTZ NOT NULL`
-- `hash TEXT NOT NULL`
+Core columns:
+- `map_type`, `filename`, `blob_url`, `original_blob_url`
+- `timestamp`, `hash`
+- `source_hash`, `processing_version`
+- `source_timestamp`, `ingested_at`
+- `source_size_bytes`, `processed_size_bytes`
+- `source_url`
 
-Indexes:
-- `idx_maps_type_ts (map_type, timestamp DESC)`
-- `idx_maps_type_hash_ts (map_type, hash, timestamp DESC)`
+Pipeline telemetry tables:
+- `ingest_runs` (aggregate run health)
+- `ingest_items` (per-map result records)
 
-Behavior:
-- hash is scoped by map type + processor version
-- archive retention currently 7 days
-- dedupe is latest-per-map-type only
+Supporting table:
+- `observer_notes`
+
+---
+
+## Archive API + UI model
+Endpoint: `GET /api/maps/archive?days=<n>`
+
+Response includes:
+- flat list (`archive`)
+- day timeline (`timeline`)
+- hierarchical tree (`hierarchy`): Group -> Type -> Year -> Month -> Day
+- retention window reflection (`days_window`)
+
+UI (`frontend/src/components/ArchiveGallery.tsx`) supports:
+- group/type/day filtering
+- timeline quick-jumps
+- metadata-rich cards (source time, ingest time, sizes, processor version)
+
+---
+
+## Overlay system
+- RDPA generated overlay: `frontend/src/app/api/geomet/rdpa/route.ts`
+- GeoMet WMS fallback: `frontend/src/app/api/geomet/wms/route.ts`
+- Optional Herbie sidecar overlay routes:
+  - `frontend/src/app/api/herbie/gdps-t2m/route.ts`
+  - `frontend/src/app/api/herbie/status/route.ts`
+
+Herbie remains optional and artifact-based; it is not a long-running backend service in Vercel.
 
 ---
 
@@ -79,41 +98,34 @@ Behavior:
 - `/api/maps/latest/[mapType]`
 - `/api/maps/archive`
 - `/api/maps/archive/[mapType]`
-
+- `/api/geomet/rdpa`
+- `/api/geomet/wms`
+- `/api/herbie/gdps-t2m`
+- `/api/herbie/status`
 - `/api/blob`
 - `/api/cron/fetch-maps`
 - `/api/cron/cleanup`
 
 ---
 
-## Security and compliance
-1. **Secrets**
-   - `POSTGRES_URL` required
-   - `BLOB_READ_WRITE_TOKEN` required
-2. **Licensing text in UI**
-   - ECCC attribution required on weather views
-   - include OGL + ECCC End-use licence context
-   - include non-endorsement language
-3. **Legal exposure (2026-03-31)**
-   - status: low to moderate, mitigated
-   - references:
-     - ECCC Data Servers End-use Licence v2.1
-     - ECCC usage policy
-   - open risks:
-     - legacy product decommission notices by ECCC
+## Compliance and exposure
+- Required ECCC attribution is present in runtime UI.
+- Non-endorsement language is included.
+- Legal references:
+  - ECCC Data Servers End-use Licence
+  - Open Government Licence - Canada
+- Current exposure: low-to-moderate, mitigated by explicit attribution and telemetry visibility.
 
 ---
 
 ## Historical decision log
-- 2026-03-30: Migrated from Python/OpenCV backend to 100% Next.js runtime.
-- 2026-03-30: Stabilized Blob proxy + cron ingestion.
-- 2026-03-30: Improved Maps/Archive UX and local-time display.
-- 2026-03-31: Completed legal exposure review and attribution hardening.
-- 2026-04-02: Removed all Herbie/Geomet overlays to strictly focus on a pure serverless map processing pipeline.
-- 2026-04-02: Fixed cron ingestion silence caused by Jimp ESM resolution and Blob access issues.
-- 2026-04-02: Production readiness push: Appended strict security headers (HSTS, CSP), automatic `sitemap.xml`/`robots.txt` generation, and SEO keywords/canonical URLs for Google Search validation.
+- 2026-03-30: Migrated to 100% Next.js runtime architecture.
+- 2026-03-31: Added in-house RDPA renderer and WMS fallback hardening.
+- 2026-03-31: Added Herbie optional sidecar overlay support.
+- 2026-04-04: Refactored cron ingest into lock-protected autonomous pipeline with run/item telemetry and improved dedupe.
+- 2026-04-04: Redesigned archive API + UI to hierarchical navigation with timeline and metadata visibility.
 
 ---
 
-**Last Updated:** 2026-03-31  
-**Version:** 3.1.1 (Detailed Documentation Refresh + Herbie Context)
+**Last Updated:** 2026-04-04  
+**Version:** 3.2.0 (Autonomous Pipeline + Archive Hierarchy)

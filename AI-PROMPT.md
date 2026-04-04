@@ -1,73 +1,100 @@
-# AtmoLens - AI Prompt Contract
+# AtmoLens AI Prompt Contract
 
-You are working on **AtmoLens**, a Next.js weather-map platform that:
-- ingests ECCC analysis maps,
-- enhances readability,
-- stores map history,
-- serves maps from one domain.
+You are assisting with **AtmoLens**, an autonomous Next.js weather-map platform.
 
 ---
 
 ## 1) Mission
-Deliver production-safe improvements to a **Next.js 16 App Router** codebase with:
-- accurate weather data handling,
-- stable archive behavior,
-- clear legal attribution,
-- mobile-friendly UI.
+Deliver production-safe improvements that strengthen:
+- ingestion reliability,
+- archive discoverability,
+- data integrity,
+- operational observability,
+- legal attribution compliance.
 
 ---
 
-## 2) Architecture rules
-### Runtime (must stay in Next.js)
-- API routes live under `frontend/src/app/api/*`.
-- Storage uses:
-  - Neon (`@neondatabase/serverless`)
-  - Vercel Blob (`@vercel/blob`)
-- No standalone Python API service in production runtime.
+## 2) Architecture contract
+### Runtime (required)
+- Next.js 16 App Router
+- Route handlers in `frontend/src/app/api/*`
+- Neon Postgres + Vercel Blob
+- No separate Python runtime inside production API surface
 
-
-
----
-
-## 3) Operational protocol
-1. Read `CONTEXT.md`, `AI-PROMPT.md`, and `AGENT_GUIDELINES.md` first.
-2. Keep API behavior deterministic; avoid hidden heuristics.
-3. Update `CONTEXT.md` decision log after major logic changes.
-4. Preserve backwards compatibility for existing `/api/maps/*` consumers.
+### Optional sidecars (allowed)
+- Python pipelines may generate static artifacts outside runtime.
+- Current optional sidecar: `pipelines/herbie/generate_gdps_t2m_overlay.py`.
 
 ---
 
-## 4) Product constraints
-- About page (`frontend/src/app/about/page.tsx`):
-  - keep structural layout stable,
-  - allow content/copy refreshes and light tweaks.
-- Weather pages must keep attribution visible.
+## 3) Core system areas
+- Ingestion route: `frontend/src/app/api/cron/fetch-maps/route.ts`
+- Storage layer: `frontend/src/lib/storage.ts`
+- Serialization layer: `frontend/src/lib/mapSerializers.ts`
+- Archive API: `frontend/src/app/api/maps/archive/route.ts`
+- Archive UI: `frontend/src/components/ArchiveGallery.tsx`
+- Health route: `frontend/src/app/api/status/route.ts`
 
 ---
 
-## 5) Current key modules
-- `frontend/src/lib/storage.ts` - DB schema and map metadata access
-- `frontend/src/lib/processor.ts` - map enhancement pipeline
-- `frontend/src/app/api/cron/fetch-maps/route.ts` - ingestion loop
+## 4) Reliability requirements
+- Guard cron runs with DB advisory lock.
+- Retry transient upstream failures.
+- Validate source payloads before processing.
+- Keep deterministic dedupe semantics.
+- Persist run-level and item-level telemetry.
+- Expose stale/degraded health states in status responses.
 
 ---
 
-## 6) Deployment checklist
-- `cd frontend && npm install && npm run build`
-- Ensure Vercel env vars are set (`POSTGRES_URL`, `BLOB_READ_WRITE_TOKEN`, etc.)
-- Validate:
-  - `/api/status`
-  - `/api/maps/latest`
+## 5) Archive requirements
+- Organize data by Group -> Type -> Year -> Month -> Day.
+- Provide timeline/date-jump affordances.
+- Display metadata:
+  - map/source time
+  - ingest time
+  - source/processed file size
+  - processing version
 
 ---
 
-## 7) Quality expectations
-- Fix root causes, not cosmetic symptoms.
-- Add clear docs when introducing new pipeline paths.
-- Keep legal copy explicit and auditable.
-- Avoid introducing new warnings/errors in `npm run lint` and `npm run build`.
+## 6) Product constraints
+- Keep `frontend/src/app/about/page.tsx` structurally stable.
+- Maintain premium visual quality and smooth interactions.
+- Preserve compatibility for existing API consumers.
 
 ---
 
-**Last Updated:** 2026-03-31  
-**Maintainer Note:** Keep this file synchronized with `CONTEXT.md`.
+## 7) Documentation protocol
+When major behavior changes:
+1. Update `CONTEXT.md` with architecture and decision-log entries.
+2. Update `README.md` with operator-facing usage.
+3. Update `MAINTENANCE.md` with runbook details.
+4. Sync this file + `AGENT_GUIDELINES.md` if workflow assumptions changed.
+
+---
+
+## 8) Deployment validation
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+Then verify:
+- `/api/status`
+- `/api/maps/latest`
+- `/api/maps/archive?days=30`
+- `/archive`
+
+---
+
+## 9) Quality standards
+- Prefer explicit logic over hidden magic.
+- Keep schema migrations additive and safe.
+- Fail clearly when assumptions are violated.
+- Remove stale contradictions from prior iterations.
+
+---
+
+**Last Updated:** 2026-04-04

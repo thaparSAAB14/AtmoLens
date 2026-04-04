@@ -1,11 +1,10 @@
-import * as JimpOriginal from "jimp";
-const Jimp = (JimpOriginal as any).Jimp || (JimpOriginal as any).default || JimpOriginal;
+import { Jimp } from "jimp";
 
 type JimpImage = {
   bitmap: { width: number; height: number; data: Buffer };
-  getBufferAsync?: (mime: string) => Promise<Buffer>;
+  getBufferAsync?: (mime: "image/png") => Promise<Buffer>;
   getBuffer: (
-    mime: string,
+    mime: "image/png",
     cb?: (err: unknown, buffer: Buffer) => void
   ) => Promise<Buffer> | Buffer | void;
 };
@@ -29,7 +28,7 @@ const OCEAN_SEED_POINTS: ReadonlyArray<readonly [number, number]> = [
   [0.55, 0.12], // Arctic Ocean
 ];
 
-async function getBuffer(image: JimpImage, mime: string): Promise<Buffer> {
+async function getBuffer(image: JimpImage, mime: "image/png"): Promise<Buffer> {
   if (typeof image.getBufferAsync === "function") {
     return image.getBufferAsync(mime);
   }
