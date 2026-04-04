@@ -129,4 +129,4 @@ Herbie remains optional and artifact-based; it is not a long-running backend ser
 ---
 
 **Last Updated:** 2026-04-04  
-**Version:** 3.2.0 (Autonomous Pipeline + Archive Hierarchy)
+**Version:** 3.2.1 (Autonomous Pipeline + Cron Activation Fix)
