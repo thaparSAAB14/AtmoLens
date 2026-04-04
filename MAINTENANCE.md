@@ -69,6 +69,7 @@ Each run follows strict stages:
 1. `GET /api/status`
    - confirm `status=online`
    - inspect `ingest_health.latest_run`
+   - compare `scheduler.last_fetch_time` (last run) vs `scheduler.last_new_map_time` (last new insert)
 2. `GET /api/maps/latest`
    - verify map timestamps move forward
 3. Open `/archive`
@@ -78,7 +79,8 @@ Each run follows strict stages:
 
 ## 7) Incident triage
 ## A) `status=degraded` or stale feed
-- Check `ingest_health.minutes_since_last_fetch`.
+- Check `ingest_health.minutes_since_last_fetch` (scheduler activity age).
+- Check `ingest_health.minutes_since_last_new_map` (data freshness age).
 - Check latest run status and failed item errors.
 - Trigger a manual run:
   - `GET /api/cron/fetch-maps?trigger=manual`

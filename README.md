@@ -40,6 +40,7 @@ Reliability behavior:
 - one map failure does not abort the whole run
 - run health is persisted and exposed in `/api/status`
 - stale feed detection is computed server-side
+- `/api/status` distinguishes scheduler activity (`last_fetch_time`) from data freshness (`last_new_map_time`)
 
 ---
 

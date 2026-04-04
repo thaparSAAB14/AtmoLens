@@ -22,19 +22,25 @@ export async function GET() {
     ]);
 
     const lastRun = latestRun.run;
-    const sinceLastFetchMin = minutesSince(lastFetchTime);
+    const lastRunActivityTime = lastRun
+      ? (lastRun.finished_at ? String(lastRun.finished_at) : String(lastRun.started_at))
+      : null;
+    const schedulerLastFetchTime = lastRunActivityTime ?? lastFetchTime;
+    const sinceLastFetchMin = minutesSince(schedulerLastFetchTime);
+    const sinceLastNewMapMin = minutesSince(lastFetchTime);
     const stale = sinceLastFetchMin !== null && sinceLastFetchMin > HEALTH_STALE_MINUTES;
     const degraded = stale || lastRun?.status === "failed";
 
     return NextResponse.json({
       system: "AtmoLens",
-      version: "3.2.1 (Autonomous Pipeline + Cron Activation Fix)",
+      version: "3.2.2 (Cron Activity Health Fix)",
       status: degraded ? "degraded" : "online",
       archive_count: archiveCount,
       map_types: mapTypes,
       scheduler: {
         running: true,
-        last_fetch_time: lastFetchTime,
+        last_fetch_time: schedulerLastFetchTime,
+        last_new_map_time: lastFetchTime,
         last_fetch_result: lastRun?.status ?? null,
         maps_processed_total: archiveCount,
         next_scheduled_run: null,
@@ -43,6 +49,7 @@ export async function GET() {
       ingest_health: {
         stale,
         minutes_since_last_fetch: sinceLastFetchMin,
+        minutes_since_last_new_map: sinceLastNewMapMin,
         latest_run: lastRun
           ? {
               id: Number(lastRun.id),

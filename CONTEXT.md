@@ -125,8 +125,9 @@ Herbie remains optional and artifact-based; it is not a long-running backend ser
 - 2026-04-04: Refactored cron ingest into lock-protected autonomous pipeline with run/item telemetry and improved dedupe.
 - 2026-04-04: Redesigned archive API + UI to hierarchical navigation with timeline and metadata visibility.
 - 2026-04-04: Identified production stale-ingest root cause as missing active cron schedule (project root mismatch); fixed by adding `frontend/vercel.json` cron config.
+- 2026-04-04: Fixed health semantics so `/api/status.last_fetch_time` tracks latest ingest run activity even when all items are deduped/skipped; added `last_new_map_time` for actual data freshness.
 
 ---
 
 **Last Updated:** 2026-04-04  
-**Version:** 3.2.1 (Autonomous Pipeline + Cron Activation Fix)
+**Version:** 3.2.2 (Cron Activity Health Fix)
