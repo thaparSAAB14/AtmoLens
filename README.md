@@ -14,6 +14,7 @@ AtmoLens ingests Environment and Climate Change Canada (ECCC) weather charts, pr
 - **Scheduler:** Vercel Cron
   - `/api/cron/fetch-maps` every 30 minutes
   - `/api/cron/cleanup` daily
+  - config source: `frontend/vercel.json`
 
 ---
 

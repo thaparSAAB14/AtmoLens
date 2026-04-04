@@ -28,7 +28,7 @@ export async function GET() {
 
     return NextResponse.json({
       system: "AtmoLens",
-      version: "3.2.0 (Autonomous Pipeline + Archive Hierarchy)",
+      version: "3.2.1 (Autonomous Pipeline + Cron Activation Fix)",
       status: degraded ? "degraded" : "online",
       archive_count: archiveCount,
       map_types: mapTypes,
