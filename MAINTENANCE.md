@@ -6,7 +6,8 @@ This document explains how AtmoLens runs autonomously on Vercel and how to diagn
 ---
 
 ## 1) Runtime topology
-- **Ingestion trigger:** Vercel Cron calls `GET /api/cron/fetch-maps` every 30 minutes.
+- **Ingestion trigger (primary):** GitHub Actions (`.github/workflows/fetch-maps.yml`) calls `GET /api/cron/fetch-maps` every 30 minutes.
+- **Ingestion trigger (fallback):** Vercel Cron calls `GET /api/cron/fetch-maps` once daily (Hobby-safe).
 - **Processing runtime:** Next.js Route Handlers (Node runtime on Vercel).
 - **Primary storage:** Vercel Blob (imagery) + Neon Postgres (metadata and run logs).
 - **Health endpoint:** `GET /api/status`.

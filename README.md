@@ -11,10 +11,9 @@ AtmoLens ingests Environment and Climate Change Canada (ECCC) weather charts, pr
 - **Database:** Neon Postgres (`@neondatabase/serverless`)
 - **Object storage:** Vercel Blob (`@vercel/blob`)
 - **Image processing:** `jimp`
-- **Scheduler:** Vercel Cron
-  - `/api/cron/fetch-maps` every 30 minutes
-  - `/api/cron/cleanup` daily
-  - config source: `frontend/vercel.json`
+- **Scheduler (Hobby-safe):**
+  - primary: GitHub Actions (`.github/workflows/fetch-maps.yml`) every 30 minutes
+  - fallback: Vercel Cron (`/api/cron/fetch-maps`) daily via `frontend/vercel.json`
 
 ---
 

@@ -1,0 +1,44 @@
+name: AtmoLens Map Fetch Scheduler
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: atmolens-fetch-maps
+  cancel-in-progress: false
+
+jobs:
+  trigger-fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger production fetch route
+        env:
+          ATMO_BASE_URL: https://atmolens.priyanshu.world
+        run: |
+          set -euo pipefail
+          URL="${ATMO_BASE_URL}/api/cron/fetch-maps?trigger=github-actions"
+          echo "Triggering: ${URL}"
+
+          for attempt in 1 2 3; do
+            HTTP_CODE="$(curl -sS -o response.json -w '%{http_code}' "${URL}" || true)"
+            echo "Attempt ${attempt}: HTTP ${HTTP_CODE}"
+            cat response.json || true
+
+            if [ "${HTTP_CODE}" = "200" ]; then
+              echo "Fetch run completed."
+              exit 0
+            fi
+
+            if [ "${HTTP_CODE}" = "429" ]; then
+              echo "Fetch route busy (another run in progress)."
+              exit 0
+            fi
+
+            sleep $((attempt * 20))
+          done
+
+          echo "Failed to trigger fetch run after retries."
+          exit 1

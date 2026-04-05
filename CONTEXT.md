@@ -16,7 +16,7 @@ AtmoLens now operates as an autonomous weather server on Vercel:
 - **DB:** Neon Postgres (`@neondatabase/serverless`)
 - **Blob:** Vercel Blob (`@vercel/blob`)
 - **Processor:** `jimp` adaptive enhancement (`frontend/src/lib/processor.ts`)
-- **Scheduler:** Vercel Cron (`/api/cron/fetch-maps`, `/api/cron/cleanup`)
+- **Scheduler:** GitHub Actions (`.github/workflows/fetch-maps.yml`) every 30 minutes + Vercel daily fallback cron (`/api/cron/fetch-maps`)
 
 ---
 
@@ -126,8 +126,9 @@ Herbie remains optional and artifact-based; it is not a long-running backend ser
 - 2026-04-04: Redesigned archive API + UI to hierarchical navigation with timeline and metadata visibility.
 - 2026-04-04: Identified production stale-ingest root cause as missing active cron schedule (project root mismatch); fixed by adding `frontend/vercel.json` cron config.
 - 2026-04-04: Fixed health semantics so `/api/status.last_fetch_time` tracks latest ingest run activity even when all items are deduped/skipped; added `last_new_map_time` for actual data freshness.
+- 2026-04-04: Added Hobby-plan compatible scheduling: Vercel cron reduced to daily and 30-minute cadence moved to GitHub Actions.
 
 ---
 
 **Last Updated:** 2026-04-04  
-**Version:** 3.2.2 (Cron Activity Health Fix)
+**Version:** 3.2.3 (Hobby Cron + GitHub Scheduler)
