@@ -127,8 +127,13 @@ Herbie remains optional and artifact-based; it is not a long-running backend ser
 - 2026-04-04: Identified production stale-ingest root cause as missing active cron schedule (project root mismatch); fixed by adding `frontend/vercel.json` cron config.
 - 2026-04-04: Fixed health semantics so `/api/status.last_fetch_time` tracks latest ingest run activity even when all items are deduped/skipped; added `last_new_map_time` for actual data freshness.
 - 2026-04-04: Added Hobby-plan compatible scheduling: Vercel cron reduced to daily and 30-minute cadence moved to GitHub Actions.
+- 2026-04-08: Simplified archive UI: removed hierarchy tree panel, merged Group+Type into unified dropdown filter bar with day quick-jump chips.
+- 2026-04-08: Removed Model Guidance (Herbie GDPS) from frontend map type labels and groups.
+- 2026-04-08: Redesigned StatusBar with multi-stage indicators, gradient progress bar, pill badges, and Force Sync enabled in production.
+- 2026-04-08: Hardened GitHub Actions fetch workflow with auto-recovery fallback step and job summaries.
+- 2026-04-08: Added Contributors section to README (Claude, Antigravity, Copilot, Vercel).
 
 ---
 
-**Last Updated:** 2026-04-04  
-**Version:** 3.2.3 (Hobby Cron + GitHub Scheduler)
+**Last Updated:** 2026-04-08  
+**Version:** 3.3.0 (Archive Simplification + StatusBar v2 + Git Resilience)

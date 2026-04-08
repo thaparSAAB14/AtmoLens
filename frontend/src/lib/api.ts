@@ -155,11 +155,9 @@ export const MAP_TYPE_LABELS: Record<string, string> = {
   upper_500hpa: "Upper Air - 500 hPa",
   upper_700hpa: "Upper Air - 700 hPa",
   upper_850hpa: "Upper Air - 850 hPa",
-  gdps_t2m_herbie: "Model Guidance - GDPS 2m Temperature",
 };
 
 export const MAP_TYPE_GROUPS: Record<string, string[]> = {
   Surface: ["surface_00z", "surface_06z", "surface_12z", "surface_18z"],
   "Upper Air": ["upper_250hpa", "upper_500hpa", "upper_700hpa", "upper_850hpa"],
-  "Model Guidance": ["gdps_t2m_herbie"],
 };

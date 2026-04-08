@@ -15,6 +15,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Trigger production fetch route
+        id: fetch
+        continue-on-error: true
         env:
           ATMO_BASE_URL: https://atmolens.priyanshu.world
         run: |
@@ -29,16 +31,52 @@ jobs:
 
             if [ "${HTTP_CODE}" = "200" ]; then
               echo "Fetch run completed."
+              echo "result=ok" >> "$GITHUB_OUTPUT"
               exit 0
             fi
 
             if [ "${HTTP_CODE}" = "429" ]; then
               echo "Fetch route busy (another run in progress)."
+              echo "result=busy" >> "$GITHUB_OUTPUT"
               exit 0
             fi
 
             sleep $((attempt * 20))
           done
 
+          echo "result=failed" >> "$GITHUB_OUTPUT"
           echo "Failed to trigger fetch run after retries."
           exit 1
+
+      - name: Recovery — retry after cooldown
+        if: steps.fetch.outcome == 'failure'
+        env:
+          ATMO_BASE_URL: https://atmolens.priyanshu.world
+        run: |
+          echo "::warning::Primary fetch failed. Attempting recovery after 60s cooldown..."
+          sleep 60
+
+          URL="${ATMO_BASE_URL}/api/cron/fetch-maps?trigger=github-actions-recovery"
+          HTTP_CODE="$(curl -sS -o recovery.json -w '%{http_code}' "${URL}" || true)"
+          echo "Recovery attempt: HTTP ${HTTP_CODE}"
+          cat recovery.json || true
+
+          if [ "${HTTP_CODE}" = "200" ] || [ "${HTTP_CODE}" = "429" ]; then
+            echo "::notice::Recovery succeeded (HTTP ${HTTP_CODE})."
+          else
+            echo "::error::Recovery also failed (HTTP ${HTTP_CODE}). Manual check required."
+            exit 1
+          fi
+
+      - name: Job summary
+        if: always()
+        run: |
+          RESULT="${{ steps.fetch.outputs.result }}"
+          OUTCOME="${{ steps.fetch.outcome }}"
+          echo "## AtmoLens Fetch Result" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Step outcome | \`${OUTCOME}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Fetch result | \`${RESULT:-unknown}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Timestamp | $(date -u +'%Y-%m-%dT%H:%M:%SZ') |" >> "$GITHUB_STEP_SUMMARY"

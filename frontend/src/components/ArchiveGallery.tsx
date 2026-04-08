@@ -5,23 +5,14 @@ import {
   getArchive,
   getImageUrl,
   MAP_TYPE_LABELS,
+  MAP_TYPE_GROUPS,
   type ArchiveEntry,
   type ArchiveResponse,
-  type ArchiveTreeGroup,
 } from "@/lib/api";
 import { formatTimestamp, formatTimestampLocal } from "@/lib/utils";
-import { Calendar, Database, Download, Filter, Layers3, RefreshCw } from "lucide-react";
+import { Calendar, ChevronDown, Database, Download, RefreshCw } from "lucide-react";
 
 const WINDOW_OPTIONS = [7, 30, 90] as const;
-
-type GroupName = "Surface" | "Upper Air" | "Model Guidance" | "Other";
-
-function resolveGroup(mapType: string): GroupName {
-  if (mapType.startsWith("surface_")) return "Surface";
-  if (mapType.startsWith("upper_")) return "Upper Air";
-  if (mapType.includes("herbie") || mapType.includes("gdps")) return "Model Guidance";
-  return "Other";
-}
 
 function formatBytes(bytes?: number | null): string {
   if (!bytes || bytes <= 0) return "—";
@@ -39,10 +30,10 @@ export function ArchiveGallery() {
   const [data, setData] = useState<ArchiveResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [daysWindow, setDaysWindow] = useState<number>(30);
-  const [selectedGroup, setSelectedGroup] = useState<GroupName | "all">("all");
+  const [daysWindow, setDaysWindow] = useState<number>(7);
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedDay, setSelectedDay] = useState<string>("all");
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -62,25 +53,25 @@ export function ArchiveGallery() {
   }, [load]);
 
   const archive = useMemo(() => data?.archive ?? [], [data?.archive]);
-  const hierarchy = useMemo(() => data?.hierarchy ?? [], [data?.hierarchy]);
 
-  const availableGroups = useMemo(
-    () => hierarchy.filter((bucket) => bucket.count > 0).map((bucket) => bucket.group as GroupName),
-    [hierarchy]
-  );
-
+  /* ── Derive available types, excluding Model Guidance ───────────────── */
   const availableTypes = useMemo(() => {
-    const groups = selectedGroup === "all"
-      ? hierarchy
-      : hierarchy.filter((group) => group.group === selectedGroup);
-    const typeSet = new Set<string>();
-    for (const group of groups) {
-      for (const typeBucket of group.types) {
-        typeSet.add(typeBucket.map_type);
+    const validTypes = new Set<string>();
+    for (const group of Object.keys(MAP_TYPE_GROUPS)) {
+      for (const t of MAP_TYPE_GROUPS[group]) {
+        validTypes.add(t);
       }
     }
-    return Array.from(typeSet).sort((a, b) => (MAP_TYPE_LABELS[a] || a).localeCompare(MAP_TYPE_LABELS[b] || b));
-  }, [hierarchy, selectedGroup]);
+    const typeSet = new Set<string>();
+    for (const entry of archive) {
+      if (validTypes.has(entry.map_type)) {
+        typeSet.add(entry.map_type);
+      }
+    }
+    return Array.from(typeSet).sort(
+      (a, b) => (MAP_TYPE_LABELS[a] || a).localeCompare(MAP_TYPE_LABELS[b] || b)
+    );
+  }, [archive]);
 
   useEffect(() => {
     if (selectedType !== "all" && !availableTypes.includes(selectedType)) {
@@ -88,37 +79,39 @@ export function ArchiveGallery() {
     }
   }, [availableTypes, selectedType]);
 
-  const groupAndTypeFiltered = useMemo(() => {
+  /* ── Filter archive ─────────────────────────────────────────────────── */
+  const typeFiltered = useMemo(() => {
+    const validTypes = new Set<string>();
+    for (const group of Object.keys(MAP_TYPE_GROUPS)) {
+      for (const t of MAP_TYPE_GROUPS[group]) {
+        validTypes.add(t);
+      }
+    }
     return archive.filter((entry) => {
-      if (selectedGroup !== "all" && resolveGroup(entry.map_type) !== selectedGroup) return false;
+      if (!validTypes.has(entry.map_type)) return false;
       if (selectedType !== "all" && entry.map_type !== selectedType) return false;
       return true;
     });
-  }, [archive, selectedGroup, selectedType]);
+  }, [archive, selectedType]);
 
+  /* ── Timeline from filtered data ────────────────────────────────────── */
   const timeline = useMemo(() => {
-    const dayMap = new Map<string, { count: number; types: Set<string> }>();
-    for (const entry of groupAndTypeFiltered) {
+    const dayMap = new Map<string, number>();
+    for (const entry of typeFiltered) {
       const day = entry.timestamp.slice(0, 10);
-      const bucket = dayMap.get(day) ?? { count: 0, types: new Set<string>() };
-      bucket.count += 1;
-      bucket.types.add(entry.map_type);
-      dayMap.set(day, bucket);
+      dayMap.set(day, (dayMap.get(day) ?? 0) + 1);
     }
     return Array.from(dayMap.entries())
-      .map(([day, bucket]) => ({
-        day,
-        count: bucket.count,
-        map_types: Array.from(bucket.types).sort(),
-      }))
+      .map(([day, count]) => ({ day, count }))
       .sort((a, b) => b.day.localeCompare(a.day));
-  }, [groupAndTypeFiltered]);
+  }, [typeFiltered]);
 
   const filtered = useMemo(() => {
-    if (selectedDay === "all") return groupAndTypeFiltered;
-    return groupAndTypeFiltered.filter((entry) => entry.timestamp.startsWith(selectedDay));
-  }, [groupAndTypeFiltered, selectedDay]);
+    if (selectedDay === "all") return typeFiltered;
+    return typeFiltered.filter((entry) => entry.timestamp.startsWith(selectedDay));
+  }, [typeFiltered, selectedDay]);
 
+  /* ── Group by day for rendering ─────────────────────────────────────── */
   const groupedByDay = useMemo(() => {
     const map = new Map<string, ArchiveEntry[]>();
     for (const entry of filtered) {
@@ -132,19 +125,6 @@ export function ArchiveGallery() {
     }
     return { map, sortedDays };
   }, [filtered]);
-
-  const filteredHierarchy = useMemo((): ArchiveTreeGroup[] => {
-    const groups = selectedGroup === "all"
-      ? hierarchy
-      : hierarchy.filter((bucket) => bucket.group === selectedGroup);
-
-    return groups
-      .map((group) => ({
-        ...group,
-        types: group.types.filter((typeBucket) => selectedType === "all" || typeBucket.map_type === selectedType),
-      }))
-      .filter((group) => group.types.length > 0);
-  }, [hierarchy, selectedGroup, selectedType]);
 
   const handleDownload = async (url: string, filename: string) => {
     try {
@@ -162,6 +142,8 @@ export function ArchiveGallery() {
       window.open(url, "_blank");
     }
   };
+
+  /* ── States ─────────────────────────────────────────────────────────── */
 
   if (loading) {
     return (
@@ -203,6 +185,9 @@ export function ArchiveGallery() {
     );
   }
 
+  const selectedTypeLabel =
+    selectedType === "all" ? "All types" : MAP_TYPE_LABELS[selectedType] || selectedType;
+
   return (
     <div className="space-y-6">
       {error && (
@@ -211,17 +196,25 @@ export function ArchiveGallery() {
         </div>
       )}
 
+      {/* ── Unified Filter Bar ──────────────────────────────────────────── */}
       <div className="glass rounded-2xl p-4 sm:p-5 space-y-4">
         <div className="flex flex-wrap items-center gap-3">
+          {/* Title */}
           <div className="flex items-center gap-2 text-[var(--text-secondary)] text-xs font-label uppercase tracking-widest">
             <Database size={14} />
-            Autonomous Archive
+            Archive
           </div>
-          <div className="ml-auto flex items-center gap-2">
+
+          {/* Right side: Days + Type + Refresh */}
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {/* Days selector */}
             {WINDOW_OPTIONS.map((option) => (
               <button
                 key={option}
-                onClick={() => setDaysWindow(option)}
+                onClick={() => {
+                  setDaysWindow(option);
+                  setSelectedDay("all");
+                }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   daysWindow === option
                     ? "bg-[var(--accent-dim)] text-[var(--accent)]"
@@ -231,6 +224,77 @@ export function ArchiveGallery() {
                 {option}d
               </button>
             ))}
+
+            {/* Divider */}
+            <div className="w-px h-5 bg-[var(--border)] mx-1 hidden sm:block" />
+
+            {/* Type dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setTypeDropdownOpen((v) => !v)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--surface-container)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all min-w-[120px] justify-between"
+              >
+                <span className="truncate max-w-[140px]">{selectedTypeLabel}</span>
+                <ChevronDown
+                  size={12}
+                  className={`transition-transform duration-200 flex-shrink-0 ${typeDropdownOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {typeDropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setTypeDropdownOpen(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-1 z-50 w-64 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xl overflow-hidden animate-fade-in-up">
+                    <button
+                      onClick={() => {
+                        setSelectedType("all");
+                        setTypeDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-xs transition-colors ${
+                        selectedType === "all"
+                          ? "bg-[var(--accent-dim)] text-[var(--accent)]"
+                          : "text-[var(--text-secondary)] hover:bg-[var(--surface-container)]"
+                      }`}
+                    >
+                      All map types
+                    </button>
+                    {Object.entries(MAP_TYPE_GROUPS).map(([group, types]) => {
+                      const groupTypes = types.filter((t) =>
+                        availableTypes.includes(t)
+                      );
+                      if (groupTypes.length === 0) return null;
+                      return (
+                        <div key={group}>
+                          <div className="px-4 py-1.5 text-[10px] uppercase tracking-widest text-[var(--text-muted)] bg-[var(--surface-container-low)]">
+                            {group}
+                          </div>
+                          {groupTypes.map((mapType) => (
+                            <button
+                              key={mapType}
+                              onClick={() => {
+                                setSelectedType(mapType);
+                                setTypeDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-4 py-2 text-xs transition-colors ${
+                                selectedType === mapType
+                                  ? "bg-[var(--accent-dim)] text-[var(--accent)]"
+                                  : "text-[var(--text-secondary)] hover:bg-[var(--surface-container)]"
+                              }`}
+                            >
+                              {MAP_TYPE_LABELS[mapType] || mapType}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Refresh */}
             <button
               onClick={() => void load()}
               className="p-2 rounded-lg bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
@@ -242,148 +306,45 @@ export function ArchiveGallery() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[var(--text-muted)] text-xs font-label uppercase tracking-widest flex items-center gap-1">
-            <Filter size={12} />
-            Group
-          </span>
-          <button
-            onClick={() => setSelectedGroup("all")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              selectedGroup === "all"
-                ? "bg-[var(--accent-dim)] text-[var(--accent)]"
-                : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-            }`}
-          >
-            All
-          </button>
-          {availableGroups.map((group) => (
+        {/* ── Day Quick-Jump Chips ──────────────────────────────────────── */}
+        {timeline.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
-              key={group}
-              onClick={() => setSelectedGroup(group)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                selectedGroup === group
+              onClick={() => setSelectedDay("all")}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                selectedDay === "all"
                   ? "bg-[var(--accent-dim)] text-[var(--accent)]"
                   : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
               }`}
             >
-              {group}
+              All days
             </button>
-          ))}
-        </div>
+            {timeline.slice(0, 14).map((point) => (
+              <button
+                key={point.day}
+                onClick={() => setSelectedDay(point.day)}
+                className={`px-2.5 py-1 rounded-md text-[11px] transition-all ${
+                  selectedDay === point.day
+                    ? "bg-[var(--accent-dim)] text-[var(--accent)]"
+                    : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                }`}
+                title={`${point.day} (${point.count} maps)`}
+              >
+                {point.day.slice(5)} <span className="opacity-60">({point.count})</span>
+              </button>
+            ))}
+          </div>
+        )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[var(--text-muted)] text-xs font-label uppercase tracking-widest flex items-center gap-1">
-            <Layers3 size={12} />
-            Type
-          </span>
-          <button
-            onClick={() => setSelectedType("all")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              selectedType === "all"
-                ? "bg-[var(--accent-dim)] text-[var(--accent)]"
-                : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-            }`}
-          >
-            All
-          </button>
-          {availableTypes.map((mapType) => (
-            <button
-              key={mapType}
-              onClick={() => setSelectedType(mapType)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                selectedType === mapType
-                  ? "bg-[var(--accent-dim)] text-[var(--accent)]"
-                  : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-              }`}
-            >
-              {MAP_TYPE_LABELS[mapType] || mapType}
-            </button>
-          ))}
+        {/* Result count */}
+        <div className="text-[var(--text-muted)] text-[11px]">
+          {filtered.length} {filtered.length === 1 ? "map" : "maps"} in{" "}
+          {groupedByDay.sortedDays.length}{" "}
+          {groupedByDay.sortedDays.length === 1 ? "day" : "days"}
         </div>
       </div>
 
-      <div className="glass rounded-2xl p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <p className="text-[var(--text-secondary)] text-xs font-label uppercase tracking-widest">
-            Timeline (Year &gt; Month &gt; Day)
-          </p>
-          <button
-            onClick={() => setSelectedDay("all")}
-            className={`text-xs px-3 py-1.5 rounded-lg transition-all ${
-              selectedDay === "all"
-                ? "bg-[var(--accent-dim)] text-[var(--accent)]"
-                : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-            }`}
-          >
-            All days
-          </button>
-        </div>
-
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {timeline.slice(0, 21).map((point) => (
-            <button
-              key={point.day}
-              onClick={() => setSelectedDay(point.day)}
-              className={`px-2.5 py-1 rounded-md text-[11px] transition-all ${
-                selectedDay === point.day
-                  ? "bg-[var(--accent-dim)] text-[var(--accent)]"
-                  : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-              }`}
-              title={`${point.day} (${point.count})`}
-            >
-              {point.day.slice(5)} ({point.count})
-            </button>
-          ))}
-        </div>
-
-        <div className="max-h-[250px] overflow-auto pr-1 space-y-4">
-          {filteredHierarchy.map((group) => (
-            <div key={group.group}>
-              <p className="text-[var(--text-primary)] text-sm font-display mb-2">
-                {group.group} <span className="text-[var(--text-muted)]">({group.count})</span>
-              </p>
-              <div className="space-y-2">
-                {group.types.map((typeBucket) => (
-                  <div key={typeBucket.map_type} className="rounded-xl bg-[var(--surface-container)] p-2.5">
-                    <p className="text-[var(--text-secondary)] text-xs mb-2">
-                      {typeBucket.label} <span className="text-[var(--text-muted)]">({typeBucket.count})</span>
-                    </p>
-                    <div className="space-y-1.5">
-                      {typeBucket.years.map((yearBucket) => (
-                        <div key={`${typeBucket.map_type}-${yearBucket.year}`}>
-                          <p className="text-[var(--text-muted)] text-[11px] uppercase tracking-widest">
-                            {yearBucket.year}
-                          </p>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {yearBucket.months.flatMap((monthBucket) =>
-                              monthBucket.days.map((dayBucket) => (
-                                <button
-                                  key={`${typeBucket.map_type}-${dayBucket.day}`}
-                                  onClick={() => setSelectedDay(dayBucket.day)}
-                                  className={`px-2.5 py-1 rounded-md text-[11px] transition-all ${
-                                    selectedDay === dayBucket.day
-                                      ? "bg-[var(--accent-dim)] text-[var(--accent)]"
-                                      : "bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                                  }`}
-                                  title={`${dayBucket.day} (${dayBucket.count})`}
-                                >
-                                  {dayBucket.day.slice(5)} ({dayBucket.count})
-                                </button>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
+      {/* ── Map Cards ──────────────────────────────────────────────────── */}
       <div className="space-y-5">
         {groupedByDay.sortedDays.map((day) => {
           const entries = groupedByDay.map.get(day) ?? [];
@@ -400,13 +361,15 @@ export function ArchiveGallery() {
                     timeZone: "UTC",
                   })}
                 </h4>
-                <span className="text-[var(--text-muted)] text-xs">{entries.length} maps</span>
+                <span className="text-[var(--text-muted)] text-xs">
+                  {entries.length} maps
+                </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {entries.map((entry) => (
                   <article
                     key={entry.path || `${entry.map_type}-${entry.filename}`}
-                    className="group rounded-xl overflow-hidden bg-[var(--surface-container)] border border-[var(--border)]/50"
+                    className="group rounded-xl overflow-hidden bg-[var(--surface-container)] border border-[var(--border)]/50 transition-shadow duration-300 hover:shadow-lg hover:shadow-[var(--accent)]/5"
                   >
                     <div className="aspect-[4/3] overflow-hidden bg-[var(--surface-variant)]">
                       <a
@@ -429,22 +392,31 @@ export function ArchiveGallery() {
                         {MAP_TYPE_LABELS[entry.map_type] || entry.map_type}
                       </p>
                       <p className="text-[var(--text-muted)] text-[11px]">
-                        Map time: {entry.source_timestamp ? formatTimestamp(entry.source_timestamp) : formatTimestamp(entry.timestamp)}
+                        Map time:{" "}
+                        {entry.source_timestamp
+                          ? formatTimestamp(entry.source_timestamp)
+                          : formatTimestamp(entry.timestamp)}
                       </p>
                       <p className="text-[var(--text-muted)] text-[11px]">
-                        Ingested: {entry.ingested_at ? formatTimestampLocal(entry.ingested_at) : formatTimestampLocal(entry.timestamp)}
+                        Ingested:{" "}
+                        {entry.ingested_at
+                          ? formatTimestampLocal(entry.ingested_at)
+                          : formatTimestampLocal(entry.timestamp)}
                       </p>
                       <p className="text-[var(--text-muted)] text-[11px]">
-                        Source size: {formatBytes(entry.source_size_bytes)} • Processed: {formatBytes(entry.processed_size_bytes)}
-                      </p>
-                      <p className="text-[var(--text-muted)] text-[11px]">
-                        Processor: {entry.processing_version || "legacy"}
+                        Source: {formatBytes(entry.source_size_bytes)} • Processed:{" "}
+                        {formatBytes(entry.processed_size_bytes)}
                       </p>
                     </div>
 
                     <div className="px-3 pb-3 flex items-center gap-2">
                       <button
-                        onClick={() => void handleDownload(getImageUrl(entry.image_url), entry.filename)}
+                        onClick={() =>
+                          void handleDownload(
+                            getImageUrl(entry.image_url),
+                            entry.filename
+                          )
+                        }
                         className="px-3 py-1.5 rounded-lg text-xs bg-[var(--accent-dim)] text-[var(--accent)] hover:bg-[var(--accent)]/15 transition-colors"
                       >
                         Download Enhanced

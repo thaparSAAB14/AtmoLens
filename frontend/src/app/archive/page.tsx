@@ -2,13 +2,13 @@
 
 import { motion } from "framer-motion";
 import { ArchiveGallery } from "@/components/ArchiveGallery";
-import { Database, Filter, Download, Clock } from "lucide-react";
+import { Database, Download, Clock, SlidersHorizontal } from "lucide-react";
 
 const archiveHighlights = [
   {
-    title: "Hierarchical browse",
-    description: "Navigate Type → Year → Month → Day without losing context.",
-    icon: Filter,
+    title: "Smart filters",
+    description: "Pick a map type from the dropdown, select a day range, and jump to any date.",
+    icon: SlidersHorizontal,
   },
   {
     title: "Metadata-rich cards",
