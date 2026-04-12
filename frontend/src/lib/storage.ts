@@ -375,6 +375,38 @@ export async function isLatestMapSignature(
   );
 }
 
+export async function getStaleMaps(targetVersion: string, limit = 10) {
+  await initDb();
+  const sql = getDb();
+  return await sql`
+    SELECT *
+    FROM maps
+    WHERE (processing_version IS NULL OR processing_version <> ${targetVersion})
+      AND original_blob_url IS NOT NULL
+    ORDER BY timestamp DESC
+    LIMIT ${limit};
+  `;
+}
+
+export async function updateMapMetadata(
+  id: number,
+  blobUrl: string,
+  hash: string,
+  version: string,
+  processedSizeBytes: number
+) {
+  await initDb();
+  const sql = getDb();
+  await sql`
+    UPDATE maps
+    SET blob_url = ${blobUrl},
+        hash = ${hash},
+        processing_version = ${version},
+        processed_size_bytes = ${processedSizeBytes}
+    WHERE id = ${id};
+  `;
+}
+
 export async function storeMapMetadata(input: MapMetadataInput) {
   await initDb();
   const sql = getDb();

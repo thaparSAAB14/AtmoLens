@@ -1,4 +1,6 @@
 import { Jimp } from "jimp";
+import path from "path";
+import fs from "fs";
 
 type JimpImage = {
   bitmap: { width: number; height: number; data: Buffer };
@@ -254,6 +256,31 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
     const nearLine = hasForegroundNeighbor(foregroundMask, width, height, pixelIndex);
     const isWater = useWaterMask && waterMask[pixelIndex] === 1;
     applyTone(data, offset, isWater ? palette.water : palette.land, nearLine);
+  }
+
+  // Step 5: apply requested high-fidelity landmask overlay.
+  try {
+    const overlayPath = path.join(process.cwd(), "src", "assets", "overlay.png");
+    console.log("[processor] Looking for overlay at:", overlayPath);
+    if (fs.existsSync(overlayPath)) {
+      console.log("[processor] Overlay file found. Reading...");
+      const overlay = await Jimp.read(overlayPath);
+      console.log("[processor] Overlay loaded successfully. Compositing...");
+      
+      // user confirmed overlay is proper dimensions, but we ensure fit.
+      if (overlay.bitmap.width !== width || overlay.bitmap.height !== height) {
+        console.log(`[processor] Resizing overlay from ${overlay.bitmap.width}x${overlay.bitmap.height} to ${width}x${height}`);
+        overlay.resize({ w: width, h: height });
+      }
+      
+      (image as any).composite(overlay, 0, 0);
+      console.log("[processor] Compositing complete.");
+    } else {
+      console.log("[processor] Overlay file not found at path.");
+    }
+  } catch (e: any) {
+    console.error(`[processor] Failed to apply overlay: ${e?.message || String(e)}`);
+    // Skip crashing the entire system if only overlay fails
   }
 
   return await getBuffer(image, "image/png");
