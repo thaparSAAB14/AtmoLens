@@ -13,10 +13,12 @@ const BATCH_SIZE = 10;
 export async function GET(request: NextRequest) {
   try {
     await initDb();
-    const staleMaps = await getStaleMaps(TARGET_VERSION, BATCH_SIZE);
+    const searchParams = request.nextUrl.searchParams;
+    const offset = parseInt(searchParams.get("offset") || "0", 10);
+    const staleMaps = await getStaleMaps(TARGET_VERSION, BATCH_SIZE, offset);
     
     if (staleMaps.length === 0) {
-      return NextResponse.json({ status: "completed", message: "No stale maps found." });
+      return NextResponse.json({ status: "completed", message: "No stale maps found at this offset.", offset });
     }
 
     const results = [];
@@ -75,6 +77,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       status: "partial",
       processed: results.length,
+      offset,
       results
     });
   } catch (error) {

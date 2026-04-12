@@ -375,7 +375,7 @@ export async function isLatestMapSignature(
   );
 }
 
-export async function getStaleMaps(targetVersion: string, limit = 10) {
+export async function getStaleMaps(targetVersion: string, limit = 10, offset = 0) {
   await initDb();
   const sql = getDb();
   return await sql`
@@ -384,7 +384,7 @@ export async function getStaleMaps(targetVersion: string, limit = 10) {
     WHERE (processing_version IS NULL OR processing_version <> ${targetVersion})
       AND original_blob_url IS NOT NULL
     ORDER BY timestamp DESC
-    LIMIT ${limit};
+    LIMIT ${limit} OFFSET ${offset};
   `;
 }
 
