@@ -4,6 +4,7 @@ import fs from "fs";
 
 type JimpImage = {
   bitmap: { width: number; height: number; data: Buffer };
+  resize: (options: { w: number; h: number }) => void;
   getBufferAsync?: (mime: "image/png") => Promise<Buffer>;
   getBuffer: (
     mime: "image/png",
