@@ -7,7 +7,7 @@ import crypto from "crypto";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; 
 
-const TARGET_VERSION = "enhancer-v4";
+const TARGET_VERSION = "enhancer-v5";
 const BATCH_SIZE = 10;
 
 export async function GET(request: NextRequest) {

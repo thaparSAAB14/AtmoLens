@@ -238,49 +238,51 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
   const initialForeground = buildForegroundMask(gray, threshold);
   const foregroundMask = refineForegroundMask(initialForeground, width, height);
 
-  // Step 3: infer ocean regions using seeded flood fill on non-foreground pixels.
-  const { mask: waterMask, coverage } = buildWaterMask(foregroundMask, width, height);
-  const useWaterMask = coverage >= 0.03 && coverage <= 0.9;
+  // Step 3: Check if surface map, prep overlay buffer
+  let overlay: JimpImage | null = null;
+  const isSurface = mapType?.startsWith("surface_");
+  
+  if (isSurface) {
+      const overlayPath = path.join(process.cwd(), "src", "assets", "overlay.png");
+      if (fs.existsSync(overlayPath)) {
+          overlay = await Jimp.read(overlayPath);
+          if (overlay.bitmap.width !== width || overlay.bitmap.height !== height) {
+              overlay.resize({ w: width, h: height });
+          }
+      }
+  }
 
-  // Step 4: apply palette while preserving foreground readability.
+  // Step 4: infer ocean regions using seeded flood fill on non-foreground pixels (only needed if NOT using overlay).
+  const { mask: waterMask, coverage } = buildWaterMask(foregroundMask, width, height);
+  const useWaterMask = !overlay && coverage >= 0.03 && coverage <= 0.9;
+
+  // Step 5: apply palette or overlay while preserving foreground readability.
   const totalPixels = width * height;
   for (let pixelIndex = 0; pixelIndex < totalPixels; pixelIndex += 1) {
     const offset = pixelIndex * 4;
+    
+    // Always preserve exact foreground linework
     if (foregroundMask[pixelIndex] === 1) {
       data[offset] = FOREGROUND_INK.r;
       data[offset + 1] = FOREGROUND_INK.g;
       data[offset + 2] = FOREGROUND_INK.b;
+      data[offset + 3] = 255;
       continue;
     }
 
-    const nearLine = hasForegroundNeighbor(foregroundMask, width, height, pixelIndex);
-    const isWater = useWaterMask && waterMask[pixelIndex] === 1;
-    applyTone(data, offset, isWater ? palette.water : palette.land, nearLine);
-  }
-
-  // Step 5: apply requested high-fidelity landmask overlay.
-  try {
-    const overlayPath = path.join(process.cwd(), "src", "assets", "overlay.png");
-    console.log("[processor] Looking for overlay at:", overlayPath);
-    if (fs.existsSync(overlayPath)) {
-      console.log("[processor] Overlay file found. Reading...");
-      const overlay = await Jimp.read(overlayPath);
-      console.log("[processor] Overlay loaded successfully. Compositing...");
-      
-      // user confirmed overlay is proper dimensions, but we ensure fit.
-      if (overlay.bitmap.width !== width || overlay.bitmap.height !== height) {
-        console.log(`[processor] Resizing overlay from ${overlay.bitmap.width}x${overlay.bitmap.height} to ${width}x${height}`);
-        overlay.resize({ w: width, h: height });
-      }
-      
-      (image as any).composite(overlay, 0, 0);
-      console.log("[processor] Compositing complete.");
+    if (overlay) {
+        // Pixel replacement from overlay
+        data[offset] = overlay.bitmap.data[offset];
+        data[offset + 1] = overlay.bitmap.data[offset + 1];
+        data[offset + 2] = overlay.bitmap.data[offset + 2];
+        const alpha = overlay.bitmap.data[offset + 3];
+        data[offset + 3] = alpha === 0 ? 255 : alpha; // ensure opacity
     } else {
-      console.log("[processor] Overlay file not found at path.");
+        // Procedural coloration for upper-air maps or fallback
+        const nearLine = hasForegroundNeighbor(foregroundMask, width, height, pixelIndex);
+        const isWater = useWaterMask && waterMask[pixelIndex] === 1;
+        applyTone(data, offset, isWater ? palette.water : palette.land, nearLine);
     }
-  } catch (e: any) {
-    console.error(`[processor] Failed to apply overlay: ${e?.message || String(e)}`);
-    // Skip crashing the entire system if only overlay fails
   }
 
   return await getBuffer(image, "image/png");
