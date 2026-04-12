@@ -239,15 +239,25 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
   const initialForeground = buildForegroundMask(gray, threshold);
   const foregroundMask = refineForegroundMask(initialForeground, width, height);
 
-  // Step 3: Check if surface map, prep overlay buffer
+  // Step 3: Check if surface or upper-air map, prep overlay buffer
   let overlay: JimpImage | null = null;
   const isSurface = mapType?.startsWith("surface_");
+  const isUpperOverlayTarget = ["upper_250hpa", "upper_500hpa", "upper_700hpa"].includes(mapType || "");
   
-  if (isSurface) {
-      const overlayPath = path.join(process.cwd(), "src", "assets", "overlay.png");
+  if (isSurface || isUpperOverlayTarget) {
+      const fileName = isSurface ? "overlay.png" : "upper_overlay_scaled.png";
+      const overlayPath = path.join(process.cwd(), "src", "assets", fileName);
+      
       if (fs.existsSync(overlayPath)) {
           overlay = await Jimp.read(overlayPath);
           if (overlay.bitmap.width !== width || overlay.bitmap.height !== height) {
+              overlay.resize({ w: width, h: height });
+          }
+      } else if (isUpperOverlayTarget) {
+          // Fallback to non-scaled version if scaled is missing
+          const fallbackPath = path.join(process.cwd(), "src", "assets", "upper_overlay.png");
+          if (fs.existsSync(fallbackPath)) {
+              overlay = await Jimp.read(fallbackPath);
               overlay.resize({ w: width, h: height });
           }
       }
