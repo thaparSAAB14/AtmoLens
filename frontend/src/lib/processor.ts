@@ -254,8 +254,13 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
   }
 
   // Step 4: infer ocean regions using seeded flood fill on non-foreground pixels (only needed if NOT using overlay).
-  const { mask: waterMask, coverage } = buildWaterMask(foregroundMask, width, height);
-  const useWaterMask = !overlay && coverage >= 0.03 && coverage <= 0.9;
+  let waterMask: Uint8Array | null = null;
+  let useWaterMask = false;
+  if (!overlay) {
+    const { mask, coverage } = buildWaterMask(foregroundMask, width, height);
+    waterMask = mask;
+    useWaterMask = coverage >= 0.03 && coverage <= 0.9;
+  }
 
   // Step 5: apply palette or overlay while preserving foreground readability.
   const totalPixels = width * height;
@@ -281,7 +286,7 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
     } else {
         // Procedural coloration for upper-air maps or fallback
         const nearLine = hasForegroundNeighbor(foregroundMask, width, height, pixelIndex);
-        const isWater = useWaterMask && waterMask[pixelIndex] === 1;
+        const isWater = useWaterMask && waterMask !== null && waterMask[pixelIndex] === 1;
         applyTone(data, offset, isWater ? palette.water : palette.land, nearLine);
     }
   }
