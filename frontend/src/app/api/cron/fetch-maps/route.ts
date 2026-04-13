@@ -4,12 +4,14 @@ import { put } from "@vercel/blob";
 import {
   beginIngestRun,
   finalizeIngestRun,
+  getStaleMaps,
   initDb,
   isLatestMapSignature,
   logIngestItem,
   releaseIngestLock,
   storeMapMetadata,
   tryAcquireIngestLock,
+  updateMapMetadata,
 } from "@/lib/storage";
 import { processImage } from "@/lib/processor";
 
@@ -318,7 +320,53 @@ export async function GET(request: NextRequest) {
 
     const okCount = results.filter((item) => item.status === "ok").length;
     const skippedCount = results.filter((item) => item.status === "skipped").length;
-    const failedCount = results.filter((item) => item.status === "failed").length;
+    let failedCount = results.filter((item) => item.status === "failed").length;
+
+    // --- Historical Re-processing Segment ---
+    // Update a batch of stale maps (on older processing versions) to v6
+    try {
+        const staleMaps = await getStaleMaps(PROCESSING_VERSION, 10);
+        for (const stale of staleMaps) {
+            try {
+                // Fetch the original gif
+                const sourceRes = await fetch(stale.original_blob_url, { cache: "no-store" });
+                if (!sourceRes.ok) throw new Error(`Failed to fetch original blob for map ${stale.id}`);
+                
+                const sourceBytes = Buffer.from(await sourceRes.arrayBuffer());
+                
+                // Process with new v6 logic
+                const processedBytes = await withTimeout(
+                    processImage(sourceBytes, stale.map_type),
+                    PROCESS_TIMEOUT_MS,
+                    "Historical re-processing timed out."
+                );
+
+                const newProcessedHash = crypto
+                    .createHash("sha256")
+                    .update(PROCESSING_VERSION)
+                    .update(stale.map_type)
+                    .update(stale.source_hash)
+                    .digest("hex");
+
+                // Overwrite the processed blob in the same location (or same name pattern)
+                const { url: newBlobUrl } = await put(stale.filename, processedBytes, {
+                    access: BLOB_ACCESS,
+                    contentType: "image/png",
+                });
+
+                // Update database
+                await updateMapMetadata(stale.id, newBlobUrl, newProcessedHash, PROCESSING_VERSION, processedBytes.byteLength);
+                
+                console.log(`[Re-process] Updated map ${stale.id} (${stale.map_type}) to ${PROCESSING_VERSION}`);
+            } catch (err) {
+                console.error(`[Re-process] Failed map ${stale.id}:`, err);
+                failedCount += 1;
+            }
+        }
+    } catch (staleErr) {
+        console.error("Failed to fetch/process stale maps:", staleErr);
+    }
+    // ----------------------------------------
     const duration = Date.now() - startedAt;
     const summary = {
       total: sourceEntries.length,
