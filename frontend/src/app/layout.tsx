@@ -1,25 +1,9 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Fraunces, Caveat } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import StyledComponentsRegistry from "@/lib/registry";
-
-const bodyFont = Bricolage_Grotesque({
-  subsets: ["latin"],
-  variable: "--font-body",
-});
-
-const displayFont = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-display",
-});
-
-const handwriting = Caveat({
-  subsets: ["latin"],
-  variable: "--font-handwriting",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://atmolens.priyanshu.world"),
@@ -61,9 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${bodyFont.variable} ${displayFont.variable} ${handwriting.variable} antialiased`}
-      >
+      <body className="antialiased">
         <StyledComponentsRegistry>
           <ThemeProvider>
             <Navbar />

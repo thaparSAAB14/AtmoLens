@@ -7,6 +7,9 @@
 /* ── Stitch Design Tokens: "Atmospheric Obsidian" ────────────────────────── */
 
 :root {
+  --font-body: "Inter";
+  --font-display: "Georgia";
+  --font-handwriting: "Brush Script MT";
   /* Light mode: Scrapbook */
   --background: #fdfbf0;
   --foreground: #1c1917;
