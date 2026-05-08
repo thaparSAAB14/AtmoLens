@@ -400,15 +400,14 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
 
   // Step 4: Check if surface or upper-air map, prep overlay buffer (cached)
   let overlay: JimpImage | null = null;
-  const isSurface = mapType?.startsWith("surface_");
+  const isSurfaceCanada = mapType?.startsWith("surface_") && !mapType?.startsWith("surface_hem_");
+  const isSurfaceHem = mapType?.startsWith("surface_hem_");
   const isUpperOverlayTarget = ["upper_250hpa", "upper_500hpa", "upper_700hpa", "upper_850hpa"].includes(mapType || "");
   
-  if (isSurface) {
-      // Surface maps: North America overlay (primary), legacy overlay (fallback)
+  if (isSurfaceCanada) {
+      overlay = await loadOverlay("overlay.png", width, height);
+  } else if (isSurfaceHem) {
       overlay = await loadOverlay("northamerica_covergae.png", width, height);
-      if (!overlay) {
-          overlay = await loadOverlay("overlay.png", width, height);
-      }
   } else if (isUpperOverlayTarget) {
       overlay = await loadOverlay("upper_overlay_scaled.png", width, height);
 
