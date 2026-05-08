@@ -68,7 +68,8 @@ Processing flow:
    - Thin lines → softer (#323741)
 
 Overlay assets (in `frontend/src/assets/`):
-- `overlay.png` — Surface map background (2428×1788)
+- `northamerica_covergae.png` — North America surface overlay (6488×5161, primary for surface maps)
+- `overlay.png` — Legacy surface overlay (6141×4357, fallback)
 - `upper_overlay_scaled.png` — Upper-air map background (2428×1788)
 - `upper_overlay.png` — Full-res upper overlay (4179×3647, fallback)
 
@@ -151,8 +152,9 @@ UI (`frontend/src/components/ArchiveGallery.tsx`) supports:
 - 2026-04-12: Added historical re-processing loop to migrate stale maps to enhancer-v6.
 - 2026-05-08: Full system audit — security hardening (CRON_SECRET + CSP + X-Frame-Options), dead code purge (14 files + 4 code blocks), performance optimization (overlay caching + alpha fix), dependency cleanup (5 unused packages removed), documentation sync.
 - 2026-05-08: Phase 5 — front detection & styling: multi-tone foreground classification, pressure system (H/L) detection and coloring, 850hpa overlay integration, processing version bumped to enhancer-v7.
+- 2026-05-08: Phase 4 — North America overlay integration: surface maps now use `northamerica_covergae.png` (6488×5161) as primary overlay, processing version bumped to enhancer-v8.
 
 ---
 
 **Last Updated:** 2026-05-08  
-**Version:** 4.1.0 (Front Detection + Multi-Tone Foreground + Pressure Styling)
+**Version:** 4.2.0 (North America Overlay + Front Detection + Security Hardening)

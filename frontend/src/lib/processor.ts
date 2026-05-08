@@ -403,12 +403,17 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
   const isSurface = mapType?.startsWith("surface_");
   const isUpperOverlayTarget = ["upper_250hpa", "upper_500hpa", "upper_700hpa", "upper_850hpa"].includes(mapType || "");
   
-  if (isSurface || isUpperOverlayTarget) {
-      const fileName = isSurface ? "overlay.png" : "upper_overlay_scaled.png";
-      overlay = await loadOverlay(fileName, width, height);
+  if (isSurface) {
+      // Surface maps: North America overlay (primary), legacy overlay (fallback)
+      overlay = await loadOverlay("northamerica_covergae.png", width, height);
+      if (!overlay) {
+          overlay = await loadOverlay("overlay.png", width, height);
+      }
+  } else if (isUpperOverlayTarget) {
+      overlay = await loadOverlay("upper_overlay_scaled.png", width, height);
 
       // Fallback to non-scaled version if scaled is missing
-      if (!overlay && isUpperOverlayTarget) {
+      if (!overlay) {
           overlay = await loadOverlay("upper_overlay.png", width, height);
       }
   }

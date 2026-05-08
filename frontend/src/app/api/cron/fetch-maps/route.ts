@@ -29,7 +29,7 @@ const SOURCES: Record<string, string> = {
   upper_850hpa: "https://weather.gc.ca/data/analysis/saa_100.gif",
 };
 
-const PROCESSING_VERSION = "enhancer-v7";
+const PROCESSING_VERSION = "enhancer-v8";
 const MAX_FETCH_ATTEMPTS = 3;
 const FETCH_TIMEOUT_MS = 25_000;
 const PROCESS_TIMEOUT_MS = 40_000;
