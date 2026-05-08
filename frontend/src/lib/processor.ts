@@ -245,6 +245,142 @@ async function loadOverlay(fileName: string, targetW: number, targetH: number): 
   return overlay;
 }
 
+// ── Foreground density classification ────────────────────────────────────────
+// Classifies each foreground pixel by local density to distinguish:
+//   3 = dense cluster (text labels, H/L markers)
+//   2 = medium-density line (isobars, fronts)
+//   1 = thin/isolated line
+function classifyForeground(
+  foregroundMask: Uint8Array,
+  width: number,
+  height: number
+): Uint8Array {
+  const classification = new Uint8Array(foregroundMask.length);
+  const neighborOffsets = [
+    -width - 1, -width, -width + 1,
+    -1, 1,
+    width - 1, width, width + 1,
+  ];
+
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const idx = y * width + x;
+      if (foregroundMask[idx] !== 1) continue;
+
+      let neighbors = 0;
+      for (const off of neighborOffsets) {
+        neighbors += foregroundMask[idx + off];
+      }
+
+      if (neighbors >= 5) {
+        classification[idx] = 3; // dense cluster
+      } else if (neighbors >= 3) {
+        classification[idx] = 2; // medium line
+      } else {
+        classification[idx] = 1; // thin line
+      }
+    }
+  }
+  return classification;
+}
+
+// ── Pressure system (H/L) detection via connected component labeling ─────────
+// Finds compact foreground clusters characteristic of H and L markers.
+// Returns a map: pixelIndex → 'H' | 'L' | null
+function detectPressureSystems(
+  foregroundMask: Uint8Array,
+  classification: Uint8Array,
+  width: number,
+  height: number
+): Map<number, "H" | "L"> {
+  const result = new Map<number, "H" | "L">();
+  const visited = new Uint8Array(foregroundMask.length);
+  const totalPixels = width * height;
+  const mapCenterY = height * 0.5;
+
+  for (let idx = 0; idx < totalPixels; idx += 1) {
+    if (foregroundMask[idx] !== 1 || visited[idx] || classification[idx] < 3) continue;
+
+    // BFS to find connected dense cluster
+    const component: number[] = [];
+    const bfsQueue: number[] = [idx];
+    visited[idx] = 1;
+    let sumX = 0, sumY = 0;
+
+    while (bfsQueue.length > 0) {
+      const current = bfsQueue.shift()!;
+      component.push(current);
+      const cy = (current / width) | 0;
+      const cx = current - cy * width;
+      sumX += cx;
+      sumY += cy;
+
+      // Check 4-connected neighbors
+      const neighbors = [current - 1, current + 1, current - width, current + width];
+      for (const n of neighbors) {
+        if (n >= 0 && n < totalPixels && !visited[n] && foregroundMask[n] === 1 && classification[n] >= 2) {
+          visited[n] = 1;
+          bfsQueue.push(n);
+        }
+      }
+
+      // Limit cluster scan to prevent runaway on huge connected regions
+      if (component.length > 150) break;
+    }
+
+    // H/L markers are typically compact clusters of ~10-120 foreground pixels
+    const size = component.length;
+    if (size < 8 || size > 120) continue;
+
+    // Check compactness: bounding box should be roughly square-ish
+    const centroidY = sumY / size;
+    const avgX = sumX / size;
+    let minX = width, maxX = 0, minY = height, maxY = 0;
+    for (const p of component) {
+      const py = (p / width) | 0;
+      const px = p - py * width;
+      if (px < minX) minX = px;
+      if (px > maxX) maxX = px;
+      if (py < minY) minY = py;
+      if (py > maxY) maxY = py;
+    }
+    const bboxW = maxX - minX + 1;
+    const bboxH = maxY - minY + 1;
+    const aspect = Math.max(bboxW, bboxH) / Math.max(1, Math.min(bboxW, bboxH));
+
+    // H/L markers are compact (aspect < 2.5) and small (bbox < 30px)
+    if (aspect > 2.5 || bboxW > 35 || bboxH > 35) continue;
+
+    // Check density within bounding box — H/L chars are dense
+    const bboxArea = bboxW * bboxH;
+    const fillRatio = size / bboxArea;
+    if (fillRatio < 0.25) continue;
+
+    // Classify as H (high pressure) or L (low pressure) based on position heuristics.
+    // In ECCC charts, H and L are distributed across the map. We use a simple heuristic:
+    // the char shape itself doesn't tell us which letter it is from pixel data alone,
+    // so we alternate based on whether the cluster is in a higher or lower pressure zone.
+    // Clusters in the upper half of the map tend to be in Arctic highs.
+    const isUpper = centroidY < mapCenterY;
+    // Edge-of-map clusters are more likely H (high pressure ridges at edges)
+    const isEdge = avgX < width * 0.15 || avgX > width * 0.85;
+    const label: "H" | "L" = (isUpper || isEdge) ? "H" : "L";
+
+    for (const p of component) {
+      result.set(p, label);
+    }
+  }
+
+  return result;
+}
+
+// ── Ink palette for multi-tone foreground ────────────────────────────────────
+const INK_DENSE: RGB = { r: 40, g: 44, b: 52 };         // slightly lighter for label text
+const INK_MEDIUM: RGB = { r: 23, g: 27, b: 35 };        // crisp dark for isobars
+const INK_THIN: RGB = { r: 50, g: 55, b: 65 };           // softer for thin lines
+const INK_HIGH_PRESSURE: RGB = { r: 192, g: 57, b: 43 }; // red for H markers
+const INK_LOW_PRESSURE: RGB = { r: 41, g: 128, b: 185 }; // blue for L markers
+
 export async function processImage(rawBytes: Buffer, mapType?: string): Promise<Buffer> {
   const image = await Jimp.read(rawBytes);
   const { width, height, data } = image.bitmap;
@@ -258,10 +394,14 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
   const initialForeground = buildForegroundMask(gray, threshold);
   const foregroundMask = refineForegroundMask(initialForeground, width, height);
 
-  // Step 3: Check if surface or upper-air map, prep overlay buffer (cached)
+  // Step 3: classify foreground by density and detect pressure systems.
+  const fgClassification = classifyForeground(foregroundMask, width, height);
+  const pressureSystems = detectPressureSystems(foregroundMask, fgClassification, width, height);
+
+  // Step 4: Check if surface or upper-air map, prep overlay buffer (cached)
   let overlay: JimpImage | null = null;
   const isSurface = mapType?.startsWith("surface_");
-  const isUpperOverlayTarget = ["upper_250hpa", "upper_500hpa", "upper_700hpa"].includes(mapType || "");
+  const isUpperOverlayTarget = ["upper_250hpa", "upper_500hpa", "upper_700hpa", "upper_850hpa"].includes(mapType || "");
   
   if (isSurface || isUpperOverlayTarget) {
       const fileName = isSurface ? "overlay.png" : "upper_overlay_scaled.png";
@@ -273,7 +413,7 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
       }
   }
 
-  // Step 4: infer ocean regions using seeded flood fill on non-foreground pixels (only needed if NOT using overlay).
+  // Step 5: infer ocean regions using seeded flood fill on non-foreground pixels (only needed if NOT using overlay).
   let waterMask: Uint8Array | null = null;
   let useWaterMask = false;
   if (!overlay) {
@@ -282,20 +422,34 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
     useWaterMask = coverage >= 0.03 && coverage <= 0.9;
   }
 
-  // Step 5: apply palette or overlay while preserving foreground readability.
+  // Step 6: apply palette or overlay with multi-tone foreground styling.
   const totalPixels = width * height;
   for (let pixelIndex = 0; pixelIndex < totalPixels; pixelIndex += 1) {
     const offset = pixelIndex * 4;
     
-    // Always preserve exact foreground linework
+    // ── Foreground ink: multi-tone rendering ──────────────────────────────
     if (foregroundMask[pixelIndex] === 1) {
-      data[offset] = FOREGROUND_INK.r;
-      data[offset + 1] = FOREGROUND_INK.g;
-      data[offset + 2] = FOREGROUND_INK.b;
+      // Check for pressure system markers first
+      const pressureLabel = pressureSystems.get(pixelIndex);
+      let ink: RGB;
+      if (pressureLabel === "H") {
+        ink = INK_HIGH_PRESSURE;
+      } else if (pressureLabel === "L") {
+        ink = INK_LOW_PRESSURE;
+      } else {
+        // Classify by density
+        const cls = fgClassification[pixelIndex];
+        ink = cls === 3 ? INK_DENSE : cls === 2 ? INK_MEDIUM : INK_THIN;
+      }
+
+      data[offset] = ink.r;
+      data[offset + 1] = ink.g;
+      data[offset + 2] = ink.b;
       data[offset + 3] = 255;
       continue;
     }
 
+    // ── Background rendering ─────────────────────────────────────────────
     if (overlay) {
         // Pixel replacement from overlay — respect overlay alpha channel
         const alpha = overlay.bitmap.data[offset + 3];
@@ -307,7 +461,7 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
         }
         // If overlay pixel is fully transparent, keep the original source pixel
     } else {
-        // Procedural coloration for upper-air maps or fallback
+        // Procedural coloration for fallback
         const nearLine = hasForegroundNeighbor(foregroundMask, width, height, pixelIndex);
         const isWater = useWaterMask && waterMask !== null && waterMask[pixelIndex] === 1;
         applyTone(data, offset, isWater ? palette.water : palette.land, nearLine);

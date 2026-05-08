@@ -54,12 +54,18 @@ File: `frontend/src/lib/processor.ts`
 Processing flow:
 1. Grayscale conversion and Otsu threshold computation.
 2. Binary foreground mask with 8-neighbor refinement.
-3. Overlay selection (cached at module level):
+3. Foreground density classification (dense clusters / medium lines / thin lines).
+4. Pressure system (H/L) detection via connected component labeling.
+5. Overlay selection (cached at module level):
    - `surface_*` → `overlay.png`
-   - `upper_250hpa/500hpa/700hpa` → `upper_overlay_scaled.png`
-   - `upper_850hpa` → procedural coloration (no overlay yet)
-4. If no overlay: seeded flood fill for ocean detection.
-5. Pixel-level compositing: foreground ink preserved, background replaced.
+   - `upper_250hpa/500hpa/700hpa/850hpa` → `upper_overlay_scaled.png`
+6. If no overlay: seeded flood fill for ocean detection.
+7. Multi-tone compositing:
+   - Pressure H markers → red (#C0392B)
+   - Pressure L markers → blue (#2980B9)
+   - Dense ink (labels) → slightly lighter (#282C34)
+   - Medium lines (isobars) → crisp dark (#171B23)
+   - Thin lines → softer (#323741)
 
 Overlay assets (in `frontend/src/assets/`):
 - `overlay.png` — Surface map background (2428×1788)
@@ -144,8 +150,9 @@ UI (`frontend/src/components/ArchiveGallery.tsx`) supports:
 - 2026-04-12: Replaced TIFF overlay with unified PNG (`250-500-700overlay.png`) for upper-air maps.
 - 2026-04-12: Added historical re-processing loop to migrate stale maps to enhancer-v6.
 - 2026-05-08: Full system audit — security hardening (CRON_SECRET + CSP + X-Frame-Options), dead code purge (14 files + 4 code blocks), performance optimization (overlay caching + alpha fix), dependency cleanup (5 unused packages removed), documentation sync.
+- 2026-05-08: Phase 5 — front detection & styling: multi-tone foreground classification, pressure system (H/L) detection and coloring, 850hpa overlay integration, processing version bumped to enhancer-v7.
 
 ---
 
 **Last Updated:** 2026-05-08  
-**Version:** 4.0.0 (Security Hardening + Full Audit + Performance)
+**Version:** 4.1.0 (Front Detection + Multi-Tone Foreground + Pressure Styling)
