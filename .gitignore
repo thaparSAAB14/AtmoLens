@@ -17,10 +17,8 @@ backend/maps/*
 backend/assets/land_mask.png
 
 # Environment
-.env
-.env.local
-backend/.env
-frontend/.env.local
+.env*
+!.env.example
 
 # Node
 node_modules/

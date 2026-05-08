@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
       hierarchy,
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("[ArchiveAPI] Critical failure:", error);
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

@@ -31,9 +31,8 @@ jobs:
           fi
 
           for attempt in 1 2 3; do
-            HTTP_CODE="$(eval curl -sS -o response.json -w '%{http_code}' ${AUTH_HEADER} \"${URL}\" || true)"
+            HTTP_CODE="$(eval curl -sS -o /dev/null -w '%{http_code}' ${AUTH_HEADER} \"${URL}\" || true)"
             echo "Attempt ${attempt}: HTTP ${HTTP_CODE}"
-            cat response.json || true
 
             if [ "${HTTP_CODE}" = "200" ]; then
               echo "Fetch run completed."
@@ -68,9 +67,8 @@ jobs:
           if [ -n "${CRON_SECRET:-}" ]; then
             AUTH_HEADER="-H \"Authorization: Bearer ${CRON_SECRET}\""
           fi
-          HTTP_CODE="$(eval curl -sS -o recovery.json -w '%{http_code}' ${AUTH_HEADER} \"${URL}\" || true)"
+          HTTP_CODE="$(eval curl -sS -o /dev/null -w '%{http_code}' ${AUTH_HEADER} \"${URL}\" || true)"
           echo "Recovery attempt: HTTP ${HTTP_CODE}"
-          cat recovery.json || true
 
           if [ "${HTTP_CODE}" = "200" ] || [ "${HTTP_CODE}" = "429" ]; then
             echo "::notice::Recovery succeeded (HTTP ${HTTP_CODE})."

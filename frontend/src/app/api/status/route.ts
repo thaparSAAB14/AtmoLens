@@ -65,11 +65,10 @@ export async function GET() {
               summary: lastRun.summary ?? null,
             }
           : null,
-        latest_items: latestRun.items.slice(0, 16),
       },
     });
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return NextResponse.json({ status: "offline", error: message }, { status: 500 });
+    console.error("[StatusAPI] Critical failure:", error);
+    return NextResponse.json({ status: "error", message: "Internal server error." }, { status: 500 });
   }
 }

@@ -33,7 +33,7 @@ export async function GET(request: Request) {
 
     return new NextResponse(result.stream, { headers });
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 404 });
+    console.error("[BlobAPI] Critical failure:", e);
+    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
   }
 }

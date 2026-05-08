@@ -22,7 +22,7 @@ export async function GET(
         );
         return NextResponse.json({ archive, count: archive.length, days_window: days });
     } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : "Unknown error";
-        return NextResponse.json({ error: message }, { status: 500 });
+        console.error("[ArchiveTypeAPI] Critical failure:", e);
+        return NextResponse.json({ error: "Internal server error." }, { status: 500 });
     }
 }

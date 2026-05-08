@@ -18,7 +18,7 @@ export async function GET() {
         );
         return NextResponse.json({ maps });
     } catch (e: unknown) {
-        const message = e instanceof Error ? e.message : "Unknown error";
-        return NextResponse.json({ error: message }, { status: 500 });
+        console.error("[LatestAPI] Critical failure:", e);
+        return NextResponse.json({ error: "Internal server error." }, { status: 500 });
     }
 }

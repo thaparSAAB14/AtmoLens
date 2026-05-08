@@ -315,18 +315,21 @@ export async function GET(request: NextRequest) {
 
   try {
     await initDb();
-    const trigger = request.nextUrl.searchParams.get("trigger") ?? "cron";
+    const rawTrigger = request.nextUrl.searchParams.get("trigger") ?? "cron";
+    // Sanitize trigger to alphanumeric + hyphen only
+    const trigger = rawTrigger.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 32);
     runId = await beginIngestRun(trigger, PROCESSING_VERSION, sourceEntries.length);
 
-    const results: MapRunResult[] = [];
+    let okCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+
     for (const [mapType, sourceUrl] of sourceEntries) {
       const result = await processSingleMap(runId, mapType, sourceUrl);
-      results.push(result);
+      if (result.status === "ok") okCount++;
+      else if (result.status === "skipped") skippedCount++;
+      else failedCount++;
     }
-
-    const okCount = results.filter((item) => item.status === "ok").length;
-    const skippedCount = results.filter((item) => item.status === "skipped").length;
-    let failedCount = results.filter((item) => item.status === "failed").length;
 
     // --- Historical Re-processing Segment ---
     // Update a batch of stale maps (on older processing versions) to the latest version
@@ -392,12 +395,13 @@ export async function GET(request: NextRequest) {
         processing_version: PROCESSING_VERSION,
         reprocessed: reprocessedCount,
         summary,
-        results,
       },
       { status: runStatus === "failed" ? 500 : 200 }
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown ingest run error.";
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error(`[IngestRun] Critical failure in run ${runId}:`, message);
+    
     if (runId) {
       await finalizeIngestRun(runId, "failed", {
         total: sourceEntries.length,
@@ -407,7 +411,7 @@ export async function GET(request: NextRequest) {
         duration_ms: Date.now() - startedAt,
       });
     }
-    return NextResponse.json({ status: "failed", run_id: runId || null, error: message }, { status: 500 });
+    return NextResponse.json({ status: "error", message: "Internal server error during ingest run." }, { status: 500 });
   } finally {
     await releaseIngestLock();
   }
