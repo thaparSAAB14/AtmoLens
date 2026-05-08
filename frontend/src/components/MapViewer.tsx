@@ -104,19 +104,26 @@ export function MapViewer({ selectedType }: MapViewerProps) {
   // Pan logic
   const handleMouseDown = (e: React.MouseEvent) => {
     if (zoom <= 1) return;
+    e.preventDefault(); // Prevent text selection/drag starts
     setIsDragging(true);
     setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
+    e.preventDefault();
     setOffset({
       x: e.clientX - dragStart.x,
       y: e.clientY - dragStart.y
     });
   };
 
-  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (isDragging) {
+      e.preventDefault();
+      setIsDragging(false);
+    }
+  };
 
   // Handle Wheel Zoom
   const handleWheel = (e: React.WheelEvent) => {
@@ -301,7 +308,7 @@ export function MapViewer({ selectedType }: MapViewerProps) {
       {/* Map image container */}
       <div
         ref={mapContainerRef}
-        className="map-container relative rounded-2xl overflow-hidden bg-[var(--surface-container)] glow-md group/container"
+        className="map-container relative rounded-2xl overflow-hidden bg-[var(--surface-container)] glow-md group/container select-none"
         onWheel={handleWheel}
       >
         <div
@@ -313,7 +320,7 @@ export function MapViewer({ selectedType }: MapViewerProps) {
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          onMouseLeave={() => setIsDragging(false)}
         >
           {imageUrl && (
             <img
