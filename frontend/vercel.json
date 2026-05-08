@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/fetch-maps",
+      "schedule": "0 0 * * *"
+    }
+  ],
+  "regions": ["iad1"]
+}
