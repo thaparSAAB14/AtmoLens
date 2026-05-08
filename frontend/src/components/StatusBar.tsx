@@ -220,14 +220,6 @@ export function StatusBar() {
             </span>
           )}
 
-          <a
-            href="/storage"
-            className="group flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--surface-container-high)]/50 text-[var(--text-muted)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-all duration-300"
-            title="Storage Management"
-          >
-            <Database size={14} className="transition-transform group-hover:scale-110" />
-          </a>
-
           {process.env.NODE_ENV === "production" ? (
             <button
               onClick={handleSyncClick}

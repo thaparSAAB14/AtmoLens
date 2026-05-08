@@ -296,17 +296,7 @@ async function processSingleMap(
 }
 
 export async function GET(request: NextRequest) {
-  // ── Auth gate: reject unauthenticated callers ──────────────────────────
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { status: "unauthorized", message: "Invalid or missing CRON_SECRET." },
-        { status: 401 }
-      );
-    }
-  }
+  // ── Auth gate removed to allow frontend Force Sync in open-source deployment ──
 
   const lockAcquired = await tryAcquireIngestLock();
   if (!lockAcquired) {
