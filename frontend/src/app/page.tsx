@@ -100,7 +100,7 @@ export default function HomePage() {
             variants={fadeUp}
           >
             Grayscale ECCC synoptic charts, automatically transformed into
-            color-enhanced, readable maps. Every 30 minutes. Zero intervention.
+            colored synoptic maps. Every 30 minutes. Zero intervention.
           </motion.p>
 
           <motion.div

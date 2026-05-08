@@ -99,7 +99,7 @@ export default function AboutPage() {
                 "Wait, why don't I just paint over the boring parts?"
               </p>
               <p>
-                Today that idea has grown into a deterministic pipeline: the map enhancer fetches ECCC synoptics, repaints the maps for unmatched clarity, and catalogs the archives entirely server-side.
+                Today that idea has grown into a deterministic pipeline: the map enhancer fetches ECCC synoptics, repaints them into colored synoptic maps for unmatched clarity, and catalogs the archives entirely server-side.
               </p>
             </div>
           </div>
