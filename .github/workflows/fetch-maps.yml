@@ -19,13 +19,19 @@ jobs:
         continue-on-error: true
         env:
           ATMO_BASE_URL: https://atmolens.priyanshu.world
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -euo pipefail
           URL="${ATMO_BASE_URL}/api/cron/fetch-maps?trigger=github-actions"
           echo "Triggering: ${URL}"
 
+          AUTH_HEADER=""
+          if [ -n "${CRON_SECRET:-}" ]; then
+            AUTH_HEADER="-H \"Authorization: Bearer ${CRON_SECRET}\""
+          fi
+
           for attempt in 1 2 3; do
-            HTTP_CODE="$(curl -sS -o response.json -w '%{http_code}' "${URL}" || true)"
+            HTTP_CODE="$(eval curl -sS -o response.json -w '%{http_code}' ${AUTH_HEADER} \"${URL}\" || true)"
             echo "Attempt ${attempt}: HTTP ${HTTP_CODE}"
             cat response.json || true
 
@@ -52,12 +58,17 @@ jobs:
         if: steps.fetch.outcome == 'failure'
         env:
           ATMO_BASE_URL: https://atmolens.priyanshu.world
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           echo "::warning::Primary fetch failed. Attempting recovery after 60s cooldown..."
           sleep 60
 
           URL="${ATMO_BASE_URL}/api/cron/fetch-maps?trigger=github-actions-recovery"
-          HTTP_CODE="$(curl -sS -o recovery.json -w '%{http_code}' "${URL}" || true)"
+          AUTH_HEADER=""
+          if [ -n "${CRON_SECRET:-}" ]; then
+            AUTH_HEADER="-H \"Authorization: Bearer ${CRON_SECRET}\""
+          fi
+          HTTP_CODE="$(eval curl -sS -o recovery.json -w '%{http_code}' ${AUTH_HEADER} \"${URL}\" || true)"
           echo "Recovery attempt: HTTP ${HTTP_CODE}"
           cat recovery.json || true
 

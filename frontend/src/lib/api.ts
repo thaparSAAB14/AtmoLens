@@ -94,18 +94,6 @@ export interface SystemStatus {
   map_types?: string[];
 }
 
-export interface HerbiePipelineStatus {
-  pipeline: string;
-  status: "ready" | "missing" | "error";
-  generated_at_utc: string | null;
-  model: string;
-  product: string;
-  variable: string;
-  level: string;
-  run_utc: string | null;
-  fxx: number;
-  details?: string;
-}
 
 async function fetchJSON<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, { cache: "no-store" });
@@ -121,9 +109,6 @@ export async function getStatus(): Promise<SystemStatus> {
   return fetchJSON<SystemStatus>("/api/status");
 }
 
-export async function getHerbieStatus(): Promise<HerbiePipelineStatus> {
-  return fetchJSON<HerbiePipelineStatus>("/api/herbie/status");
-}
 
 export async function getLatestMaps(): Promise<{ maps: Record<string, MapInfo> }> {
   return fetchJSON<{ maps: Record<string, MapInfo> }>("/api/maps/latest");

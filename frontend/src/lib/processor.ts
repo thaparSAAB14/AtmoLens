@@ -226,6 +226,25 @@ function applyTone(pixelData: Buffer, offset: number, tone: RGB, darken: boolean
   pixelData[offset + 3] = 255; // Fix opacity channel explicitly
 }
 
+// ── Overlay cache: avoid reading PNGs from disk on every invocation ──────────
+const overlayCache = new Map<string, JimpImage>();
+
+async function loadOverlay(fileName: string, targetW: number, targetH: number): Promise<JimpImage | null> {
+  const cacheKey = `${fileName}:${targetW}x${targetH}`;
+  const cached = overlayCache.get(cacheKey);
+  if (cached) return cached;
+
+  const overlayPath = path.join(process.cwd(), "src", "assets", fileName);
+  if (!fs.existsSync(overlayPath)) return null;
+
+  const overlay = await Jimp.read(overlayPath) as unknown as JimpImage;
+  if (overlay.bitmap.width !== targetW || overlay.bitmap.height !== targetH) {
+    overlay.resize({ w: targetW, h: targetH });
+  }
+  overlayCache.set(cacheKey, overlay);
+  return overlay;
+}
+
 export async function processImage(rawBytes: Buffer, mapType?: string): Promise<Buffer> {
   const image = await Jimp.read(rawBytes);
   const { width, height, data } = image.bitmap;
@@ -239,27 +258,18 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
   const initialForeground = buildForegroundMask(gray, threshold);
   const foregroundMask = refineForegroundMask(initialForeground, width, height);
 
-  // Step 3: Check if surface or upper-air map, prep overlay buffer
+  // Step 3: Check if surface or upper-air map, prep overlay buffer (cached)
   let overlay: JimpImage | null = null;
   const isSurface = mapType?.startsWith("surface_");
   const isUpperOverlayTarget = ["upper_250hpa", "upper_500hpa", "upper_700hpa"].includes(mapType || "");
   
   if (isSurface || isUpperOverlayTarget) {
       const fileName = isSurface ? "overlay.png" : "upper_overlay_scaled.png";
-      const overlayPath = path.join(process.cwd(), "src", "assets", fileName);
-      
-      if (fs.existsSync(overlayPath)) {
-          overlay = await Jimp.read(overlayPath);
-          if (overlay.bitmap.width !== width || overlay.bitmap.height !== height) {
-              overlay.resize({ w: width, h: height });
-          }
-      } else if (isUpperOverlayTarget) {
-          // Fallback to non-scaled version if scaled is missing
-          const fallbackPath = path.join(process.cwd(), "src", "assets", "upper_overlay.png");
-          if (fs.existsSync(fallbackPath)) {
-              overlay = await Jimp.read(fallbackPath);
-              overlay.resize({ w: width, h: height });
-          }
+      overlay = await loadOverlay(fileName, width, height);
+
+      // Fallback to non-scaled version if scaled is missing
+      if (!overlay && isUpperOverlayTarget) {
+          overlay = await loadOverlay("upper_overlay.png", width, height);
       }
   }
 
@@ -287,12 +297,15 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
     }
 
     if (overlay) {
-        // Pixel replacement from overlay
-        data[offset] = overlay.bitmap.data[offset];
-        data[offset + 1] = overlay.bitmap.data[offset + 1];
-        data[offset + 2] = overlay.bitmap.data[offset + 2];
+        // Pixel replacement from overlay — respect overlay alpha channel
         const alpha = overlay.bitmap.data[offset + 3];
-        data[offset + 3] = alpha === 0 ? 255 : alpha; // ensure opacity
+        if (alpha > 0) {
+            data[offset] = overlay.bitmap.data[offset];
+            data[offset + 1] = overlay.bitmap.data[offset + 1];
+            data[offset + 2] = overlay.bitmap.data[offset + 2];
+            data[offset + 3] = alpha;
+        }
+        // If overlay pixel is fully transparent, keep the original source pixel
     } else {
         // Procedural coloration for upper-air maps or fallback
         const nearLine = hasForegroundNeighbor(foregroundMask, width, height, pixelIndex);
@@ -302,9 +315,4 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
   }
 
   return await getBuffer(image, "image/png");
-}
-
-export async function convertOriginalToPng(rawBytes: Buffer): Promise<Buffer> {
-    const image = await Jimp.read(rawBytes);
-    return await getBuffer(image, "image/png");
 }

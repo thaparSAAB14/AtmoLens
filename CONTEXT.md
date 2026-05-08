@@ -6,7 +6,8 @@ AtmoLens now operates as an autonomous weather server on Vercel:
 - periodic ingest with run-level locking,
 - persistent pipeline telemetry,
 - deterministic deduplication,
-- hierarchical archive navigation with metadata.
+- hierarchical archive navigation with metadata,
+- historical re-processing of stale maps.
 
 ---
 
@@ -24,9 +25,10 @@ AtmoLens now operates as an autonomous weather server on Vercel:
 Route: `frontend/src/app/api/cron/fetch-maps/route.ts`
 
 Execution model:
-1. Acquire Postgres advisory lock.
-2. Create `ingest_runs` row.
-3. For each map source:
+1. Validate `CRON_SECRET` bearer token (if configured).
+2. Acquire Postgres advisory lock.
+3. Create `ingest_runs` row.
+4. For each map source:
    - fetch with retries and timeout
    - validate content type + byte size
    - compute source hash
@@ -35,13 +37,34 @@ Execution model:
    - upload to Blob
    - insert map metadata row
    - insert item log row (`ingest_items`)
-4. Finalize run summary (`ok/partial/failed`).
-5. Release advisory lock.
+5. Re-process up to 10 stale maps (older processing versions) per run.
+6. Finalize run summary (`ok/partial/failed`).
+7. Release advisory lock.
 
 Self-healing behavior:
 - partial failures are isolated per map type
 - transient upstream failures are retried
 - stale-feed detection is exposed in `/api/status`
+
+---
+
+## Image processing pipeline
+File: `frontend/src/lib/processor.ts`
+
+Processing flow:
+1. Grayscale conversion and Otsu threshold computation.
+2. Binary foreground mask with 8-neighbor refinement.
+3. Overlay selection (cached at module level):
+   - `surface_*` → `overlay.png`
+   - `upper_250hpa/500hpa/700hpa` → `upper_overlay_scaled.png`
+   - `upper_850hpa` → procedural coloration (no overlay yet)
+4. If no overlay: seeded flood fill for ocean detection.
+5. Pixel-level compositing: foreground ink preserved, background replaced.
+
+Overlay assets (in `frontend/src/assets/`):
+- `overlay.png` — Surface map background (2428×1788)
+- `upper_overlay_scaled.png` — Upper-air map background (2428×1788)
+- `upper_overlay.png` — Full-res upper overlay (4179×3647, fallback)
 
 ---
 
@@ -81,30 +104,20 @@ UI (`frontend/src/components/ArchiveGallery.tsx`) supports:
 
 ---
 
-## Overlay system
-- RDPA generated overlay: `frontend/src/app/api/geomet/rdpa/route.ts`
-- GeoMet WMS fallback: `frontend/src/app/api/geomet/wms/route.ts`
-- Optional Herbie sidecar overlay routes:
-  - `frontend/src/app/api/herbie/gdps-t2m/route.ts`
-  - `frontend/src/app/api/herbie/status/route.ts`
-
-Herbie remains optional and artifact-based; it is not a long-running backend service in Vercel.
-
----
-
 ## Public API surface
 - `/api/status`
 - `/api/maps/latest`
-- `/api/maps/latest/[mapType]`
 - `/api/maps/archive`
 - `/api/maps/archive/[mapType]`
-- `/api/geomet/rdpa`
-- `/api/geomet/wms`
-- `/api/herbie/gdps-t2m`
-- `/api/herbie/status`
-- `/api/blob`
-- `/api/cron/fetch-maps`
-- `/api/cron/cleanup`
+- `/api/blob` (private blob proxy)
+- `/api/cron/fetch-maps` (authenticated)
+
+---
+
+## Security
+- `CRON_SECRET` env var protects the ingest endpoint.
+- Security headers: HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, CSP.
+- Blob access defaults to private; proxy route exposes images on-demand.
 
 ---
 
@@ -120,20 +133,19 @@ Herbie remains optional and artifact-based; it is not a long-running backend ser
 
 ## Historical decision log
 - 2026-03-30: Migrated to 100% Next.js runtime architecture.
-- 2026-03-31: Added in-house RDPA renderer and WMS fallback hardening.
-- 2026-03-31: Added Herbie optional sidecar overlay support.
+- 2026-03-31: Added in-house RDPA renderer and WMS fallback hardening (later removed).
+- 2026-03-31: Added Herbie optional sidecar overlay support (later removed).
 - 2026-04-04: Refactored cron ingest into lock-protected autonomous pipeline with run/item telemetry and improved dedupe.
 - 2026-04-04: Redesigned archive API + UI to hierarchical navigation with timeline and metadata visibility.
-- 2026-04-04: Identified production stale-ingest root cause as missing active cron schedule (project root mismatch); fixed by adding `frontend/vercel.json` cron config.
-- 2026-04-04: Fixed health semantics so `/api/status.last_fetch_time` tracks latest ingest run activity even when all items are deduped/skipped; added `last_new_map_time` for actual data freshness.
 - 2026-04-04: Added Hobby-plan compatible scheduling: Vercel cron reduced to daily and 30-minute cadence moved to GitHub Actions.
 - 2026-04-08: Simplified archive UI: removed hierarchy tree panel, merged Group+Type into unified dropdown filter bar with day quick-jump chips.
 - 2026-04-08: Removed Model Guidance (Herbie GDPS) from frontend map type labels and groups.
 - 2026-04-08: Redesigned StatusBar with multi-stage indicators, gradient progress bar, pill badges, and Force Sync enabled in production.
-- 2026-04-08: Hardened GitHub Actions fetch workflow with auto-recovery fallback step and job summaries.
-- 2026-04-08: Added Contributors section to README (Claude, Antigravity, Copilot, Vercel).
+- 2026-04-12: Replaced TIFF overlay with unified PNG (`250-500-700overlay.png`) for upper-air maps.
+- 2026-04-12: Added historical re-processing loop to migrate stale maps to enhancer-v6.
+- 2026-05-08: Full system audit — security hardening (CRON_SECRET + CSP + X-Frame-Options), dead code purge (14 files + 4 code blocks), performance optimization (overlay caching + alpha fix), dependency cleanup (5 unused packages removed), documentation sync.
 
 ---
 
-**Last Updated:** 2026-04-08  
-**Version:** 3.3.0 (Archive Simplification + StatusBar v2 + Git Resilience)
+**Last Updated:** 2026-05-08  
+**Version:** 4.0.0 (Security Hardening + Full Audit + Performance)
