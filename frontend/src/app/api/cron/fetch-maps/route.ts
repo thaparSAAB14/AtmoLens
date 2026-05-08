@@ -23,13 +23,17 @@ const SOURCES: Record<string, string> = {
   surface_06z: "https://weather.gc.ca/data/analysis/jac06_100.gif",
   surface_12z: "https://weather.gc.ca/data/analysis/jac12_100.gif",
   surface_18z: "https://weather.gc.ca/data/analysis/jac18_100.gif",
+  surface_hem_00z: "https://weather.gc.ca/data/analysis/947_100.gif",
+  surface_hem_06z: "https://weather.gc.ca/data/analysis/951_100.gif",
+  surface_hem_12z: "https://weather.gc.ca/data/analysis/935_100.gif",
+  surface_hem_18z: "https://weather.gc.ca/data/analysis/941_100.gif",
   upper_250hpa: "https://weather.gc.ca/data/analysis/sah_100.gif",
   upper_500hpa: "https://weather.gc.ca/data/analysis/sai_100.gif",
   upper_700hpa: "https://weather.gc.ca/data/analysis/saj_100.gif",
   upper_850hpa: "https://weather.gc.ca/data/analysis/saa_100.gif",
 };
 
-const PROCESSING_VERSION = "enhancer-v8";
+const PROCESSING_VERSION = "enhancer-v9";
 const MAX_FETCH_ATTEMPTS = 3;
 const FETCH_TIMEOUT_MS = 25_000;
 const PROCESS_TIMEOUT_MS = 40_000;

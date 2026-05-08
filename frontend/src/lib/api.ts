@@ -136,6 +136,10 @@ export const MAP_TYPE_LABELS: Record<string, string> = {
   surface_06z: "Surface Analysis - 06Z",
   surface_12z: "Surface Analysis - 12Z",
   surface_18z: "Surface Analysis - 18Z",
+  surface_hem_00z: "Northern Hemispheric - 00Z",
+  surface_hem_06z: "Northern Hemispheric - 06Z",
+  surface_hem_12z: "Northern Hemispheric - 12Z",
+  surface_hem_18z: "Northern Hemispheric - 18Z",
   upper_250hpa: "Upper Air - 250 hPa",
   upper_500hpa: "Upper Air - 500 hPa",
   upper_700hpa: "Upper Air - 700 hPa",
@@ -144,5 +148,6 @@ export const MAP_TYPE_LABELS: Record<string, string> = {
 
 export const MAP_TYPE_GROUPS: Record<string, string[]> = {
   Surface: ["surface_00z", "surface_06z", "surface_12z", "surface_18z"],
+  "Northern Hemispheric": ["surface_hem_00z", "surface_hem_06z", "surface_hem_12z", "surface_hem_18z"],
   "Upper Air": ["upper_250hpa", "upper_500hpa", "upper_700hpa", "upper_850hpa"],
 };

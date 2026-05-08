@@ -207,7 +207,7 @@ export function StatusBar() {
           </>
         )}
 
-        {/* ── Sync button (enabled in production) ──────────────────────── */}
+        {/* ── Storage & Sync actions ─────────────────────────────────────── */}
         <div className="ml-auto hidden sm:flex items-center gap-2">
           {syncResult === "ok" && (
             <span className="text-emerald-400 text-[11px] font-label animate-fade-in-up">
@@ -219,17 +219,29 @@ export function StatusBar() {
               Sync failed
             </span>
           )}
-          <button
-            onClick={handleSyncClick}
-            className="text-xs font-label bg-[var(--accent-dim)] text-[var(--accent)] hover:bg-[var(--accent)]/15 px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-1.5 disabled:opacity-50 hover:scale-[1.02]"
-            disabled={isSyncing}
+
+          <a
+            href="/storage"
+            className="group flex items-center justify-center w-8 h-8 rounded-lg bg-[var(--surface-container-high)]/50 text-[var(--text-muted)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] transition-all duration-300"
+            title="Storage Management"
           >
-            <RefreshCw
-              size={11}
-              className={isSyncing ? "animate-spin" : ""}
-            />
-            {isSyncing ? "Syncing…" : "Sync"}
-          </button>
+            <Database size={14} className="transition-transform group-hover:scale-110" />
+          </a>
+
+          {process.env.NODE_ENV === "production" ? (
+            <button
+              onClick={handleSyncClick}
+              disabled={isSyncing}
+              className="group flex items-center gap-2 bg-[var(--accent)]/10 hover:bg-[var(--accent)]/20 text-[var(--accent)] px-3 py-1.5 rounded-lg text-xs font-label uppercase tracking-widest transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw size={13} className={isSyncing ? "animate-spin" : "transition-transform group-hover:rotate-180"} />
+              {isSyncing ? "Syncing..." : "Force Sync"}
+            </button>
+          ) : (
+            <div className="text-[10px] text-[var(--text-muted)] font-label uppercase tracking-widest px-2">
+              Sync Disabled
+            </div>
+          )}
         </div>
       </div>
     </div>
