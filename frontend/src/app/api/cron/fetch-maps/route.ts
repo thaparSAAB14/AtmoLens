@@ -33,7 +33,7 @@ const SOURCES: Record<string, string> = {
   upper_850hpa: "https://weather.gc.ca/data/analysis/saa_100.gif",
 };
 
-const PROCESSING_VERSION = "enhancer-v11";
+const PROCESSING_VERSION = "enhancer-v12";
 const MAX_FETCH_ATTEMPTS = 3;
 const FETCH_TIMEOUT_MS = 25_000;
 const PROCESS_TIMEOUT_MS = 40_000;
@@ -329,9 +329,10 @@ export async function GET(request: NextRequest) {
     let failedCount = results.filter((item) => item.status === "failed").length;
 
     // --- Historical Re-processing Segment ---
-    // Update a batch of stale maps (on older processing versions) to v6
+    // Update a batch of stale maps (on older processing versions) to the latest version
+    let reprocessedCount = 0;
     try {
-        const staleMaps = await getStaleMaps(PROCESSING_VERSION, 10);
+        const staleMaps = await getStaleMaps(PROCESSING_VERSION, 40);
         for (const stale of staleMaps) {
             try {
                 // Fetch the original gif
@@ -340,7 +341,7 @@ export async function GET(request: NextRequest) {
                 
                 const sourceBytes = Buffer.from(await sourceRes.arrayBuffer());
                 
-                // Process with new v6 logic
+                // Process with new logic
                 const processedBytes = await withTimeout(
                     processImage(sourceBytes, stale.map_type),
                     PROCESS_TIMEOUT_MS,
@@ -354,7 +355,7 @@ export async function GET(request: NextRequest) {
                     .update(stale.source_hash)
                     .digest("hex");
 
-                // Overwrite the processed blob in the same location (or same name pattern)
+                // Overwrite the processed blob in the same location
                 const { url: newBlobUrl } = await put(stale.filename, processedBytes, {
                     access: BLOB_ACCESS,
                     contentType: "image/png",
@@ -362,17 +363,15 @@ export async function GET(request: NextRequest) {
 
                 // Update database
                 await updateMapMetadata(stale.id, newBlobUrl, newProcessedHash, PROCESSING_VERSION, processedBytes.byteLength);
-                
-                console.log(`[Re-process] Updated map ${stale.id} (${stale.map_type}) to ${PROCESSING_VERSION}`);
+                reprocessedCount++;
             } catch (err) {
-                console.error(`[Re-process] Failed map ${stale.id}:`, err);
-                failedCount += 1;
+                console.error(`Failed to re-process stale map ${stale.id}:`, err);
             }
         }
-    } catch (staleErr) {
-        console.error("Failed to fetch/process stale maps:", staleErr);
+    } catch (error) {
+        console.error("Historical re-processing segment failed:", error);
     }
-    // ----------------------------------------
+
     const duration = Date.now() - startedAt;
     const summary = {
       total: sourceEntries.length,
@@ -391,6 +390,7 @@ export async function GET(request: NextRequest) {
         run_id: runId,
         run_status: runStatus,
         processing_version: PROCESSING_VERSION,
+        reprocessed: reprocessedCount,
         summary,
         results,
       },
