@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { getLatestMaps, getImageUrl, MAP_TYPE_LABELS, type MapInfo } from "@/lib/api";
 import { formatTimestamp, formatTimestampLocal, timeAgo } from "@/lib/utils";
-import { Download, Maximize2, Minimize2 } from "lucide-react";
+import { Download, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
 interface MapViewerProps {
   selectedType: string;
@@ -16,7 +16,15 @@ export function MapViewer({ selectedType }: MapViewerProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // Zoom & Pan state
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   const fetchMaps = useCallback(async () => {
     setIsRefreshing(true);
@@ -77,8 +85,49 @@ export function MapViewer({ selectedType }: MapViewerProps) {
       document.body.removeChild(a);
       URL.revokeObjectURL(objectUrl);
     } catch {
-      // Fallback to opening in new tab
       window.open(url, "_blank");
+    }
+  };
+
+  // Zoom logic
+  const zoomIn = () => setZoom(prev => Math.min(prev + 0.5, 5));
+  const zoomOut = () => setZoom(prev => {
+    const next = Math.max(prev - 0.5, 1);
+    if (next === 1) setOffset({ x: 0, y: 0 });
+    return next;
+  });
+  const resetZoom = () => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+  };
+
+  // Pan logic
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoom <= 1) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setOffset({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
+  // Handle Wheel Zoom
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.2 : 0.2;
+        setZoom(prev => {
+            const next = Math.max(1, Math.min(5, prev + delta));
+            if (next === 1) setOffset({ x: 0, y: 0 });
+            return next;
+        });
     }
   };
 
@@ -249,30 +298,74 @@ export function MapViewer({ selectedType }: MapViewerProps) {
         </div>
       </div>
 
-      {/* Map image */}
+      {/* Map image container */}
       <div
         ref={mapContainerRef}
-        className="map-container relative rounded-2xl overflow-hidden bg-[var(--surface-container)] glow-md"
+        className="map-container relative rounded-2xl overflow-hidden bg-[var(--surface-container)] glow-md group/container"
+        onWheel={handleWheel}
       >
         <div
-          className={`flex items-center justify-center w-full ${
+          className={`relative w-full overflow-hidden flex items-center justify-center transition-all ${
             isFullscreen
-              ? "h-screen"
+              ? "h-screen bg-[var(--background)]"
               : "h-[70vh] max-h-[760px] min-h-[360px]"
-          }`}
+          } ${zoom > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
         >
           {imageUrl && (
             <img
+              ref={imageRef}
               src={imageUrl}
               alt={MAP_TYPE_LABELS[selectedType] || selectedType}
-              className="w-full h-full object-contain"
+              className={`max-w-full max-h-full object-contain pointer-events-none transition-transform duration-200 ease-out`}
+              style={{
+                transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+              }}
               draggable={false}
             />
           )}
         </div>
 
+        {/* Zoom Controls Overlay (Right Side) */}
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-20">
+          <div className="flex flex-col gap-1 p-1 rounded-xl glass-strong shadow-lg border border-[var(--border)]">
+            <button
+              onClick={zoomIn}
+              className="p-2 rounded-lg hover:bg-[var(--accent-dim)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all"
+              title="Zoom In"
+            >
+              <ZoomIn size={20} />
+            </button>
+            <div className="h-px bg-[var(--border)] mx-2" />
+            <button
+              onClick={zoomOut}
+              className="p-2 rounded-lg hover:bg-[var(--accent-dim)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all disabled:opacity-30"
+              disabled={zoom <= 1}
+              title="Zoom Out"
+            >
+              <ZoomOut size={20} />
+            </button>
+            <div className="h-px bg-[var(--border)] mx-2" />
+            <button
+              onClick={resetZoom}
+              className="p-2 rounded-lg hover:bg-[var(--accent-dim)] text-[var(--text-secondary)] hover:text-[var(--accent)] transition-all disabled:opacity-30"
+              disabled={zoom === 1 && offset.x === 0 && offset.y === 0}
+              title="Reset View"
+            >
+              <RotateCcw size={20} />
+            </button>
+          </div>
+          
+          <div className="glass px-2 py-1 rounded-lg text-[10px] font-mono text-[var(--text-muted)] text-center">
+            {Math.round(zoom * 100)}%
+          </div>
+        </div>
+
         {/* Timestamp overlay */}
-        <div className="absolute bottom-3 left-3 bg-[var(--surface)]/80 backdrop-blur-sm rounded-lg px-3 py-1.5">
+        <div className="absolute bottom-3 left-3 bg-[var(--surface)]/80 backdrop-blur-sm rounded-lg px-3 py-1.5 z-10">
           <p className="text-[var(--text-secondary)] text-xs font-label">
             Local: {localTimestamp}
           </p>
