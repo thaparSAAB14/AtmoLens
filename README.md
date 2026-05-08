@@ -1,164 +1,85 @@
-# AtmoLens
-**Autonomous weather-map server on Vercel (Next.js 16 + Neon + Blob)**
+# AtmoLens 🌤️
+**Turning Grayscale Data into Colored Synoptic Intelligence**
 
-AtmoLens ingests Environment and Climate Change Canada (ECCC) weather charts, processes them into high-contrast analysis maps, stores historical records, and serves a structured archive with metadata-rich navigation.
-
----
-
-## 1) Runtime architecture
-- **Framework:** Next.js 16 (App Router), React 19
-- **API runtime:** `frontend/src/app/api/*`
-- **Database:** Neon Postgres (`@neondatabase/serverless`)
-- **Object storage:** Vercel Blob (`@vercel/blob`)
-- **Image processing:** `jimp` (adaptive Otsu-threshold enhancement)
-- **Scheduler (Hobby-safe):**
-  - primary: GitHub Actions (`.github/workflows/fetch-maps.yml`) every 30 min, with auto-recovery fallback
-  - fallback: Vercel Cron (`/api/cron/fetch-maps`) daily via `frontend/vercel.json`
+AtmoLens is an autonomous GIS pipeline designed to solve a specific problem: the low readability of standard Environment Canada (ECCC) synoptic charts. By automating the ingestion and color-enhancement of meteorological data, AtmoLens provides a clear, interactive, and high-contrast view of weather patterns for the Canadian region and Northern Hemisphere.
 
 ---
 
-## 2) Autonomous ingestion pipeline
-Route: `GET /api/cron/fetch-maps`
+## 📽️ The Problem & Solution
 
-Pipeline stages:
-1. Acquire Postgres advisory lock (prevents overlapping runs).
-2. Create run log in `ingest_runs`.
-3. Per map source (Surface 00/06/12/18Z + Upper Air 250/500/700/850 hPa):
-   - fetch with timeout + retries
-   - validate response type and minimum size
-   - compute source hash
-   - dedupe via `(map_type, source_hash, processing_version)`
-   - process image with timeout guard
-   - upload original + processed files
-   - write metadata row to `maps`
-   - write item-level log to `ingest_items`
-4. Finalize run status (`ok`, `partial`, `failed`).
-5. Release lock.
+### The Problem
+Traditional synoptic charts are often published in **grayscale**, where land blends into the sea, coastlines disappear under isobars, and meteorological symbols are difficult to isolate at a glance. For students and weather analysts, this leads to significant "visual noise" and slower interpretation times.
 
-Reliability behavior:
-- one map failure does not abort the whole run
-- run health is persisted and exposed in `/api/status`
-- stale feed detection is computed server-side
-- `/api/status` distinguishes scheduler activity (`last_fetch_time`) from data freshness (`last_new_map_time`)
-- GitHub Actions workflow includes auto-recovery step if primary fetch fails
+### The AtmoLens Solution
+AtmoLens "paints" over the boring parts. It uses a deterministic server-side pipeline to:
+1.  **Ingest**: Automatically fetch the latest charts from ECCC every 30 minutes.
+2.  **Transform**: Apply a custom coloration engine to re-map land, water, and grid-lines while preserving the integrity of the synoptic ink.
+3.  **Archive**: Catalog processed maps into a structured, searchable 7-day archive.
+4.  **Visualize**: Present the data in a premium, interactive viewer with advanced zoom and pan capabilities.
 
 ---
 
-## 3) Archive UI
-Primary endpoint: `GET /api/maps/archive?days=<n>`
+## ✨ Key Features
 
-**Simplified filter bar:**
-- Day window selector (7 / 30 / 90 days)
-- Grouped type dropdown (Surface, Upper Air)
-- Day quick-jump chips
-- One-click refresh
+### 🎨 Colored Synoptic Maps
+AtmoLens transforms standard "grey noise" into vibrant, high-contrast maps.
+*   **Canada Surface Maps**: Enhanced with custom overlays for maximum coastline clarity.
+*   **Northern Hemispheric Coverage**: Optimized for wide-scale atmospheric analysis.
+*   **Upper Air Analysis**: Precision-scaled overlays for 250, 500, 700, and 850 hPa levels.
 
-Response includes:
-- flat entries for grid rendering
-- `timeline` for day-level jumps
-- `hierarchy` for Type → Year → Month → Day navigation
-- `days_window` to reflect retention query
+### 🔍 Interactive Map Viewer
+A professional-grade inspection tool built directly into the browser:
+*   **Precision Zoom**: Inspect systems at up to 500% zoom without losing frame context.
+*   **Fluid Panning**: Navigate across the map with clamped boundaries to ensure you never lose your place.
+*   **Original vs. Enhanced**: Toggle between the raw ECCC gif and the AtmoLens colored version with a single click.
+*   **Local & UTC Time**: Automated timestamp syncing for real-time analysis.
 
-Map metadata returned per entry:
-- map/source time, ingest time
-- source size + processed size
-- processing version, source URL
-
----
-
-## 4) Status dashboard
-The Maps page includes a real-time status bar with:
-- Multi-stage status indicator (Connecting → Live → Stale → Error)
-- Gradient progress bar during sync operations
-- Pill badges showing archive count, last update, and run health
-- Manual sync button (available in production)
+### ⚙️ Autonomous Pipeline
+*   **Zero Intervention**: Runs 24/7 using GitHub Actions and Vercel Cron.
+*   **Self-Healing**: Automated re-processing logic that can update the entire archive when logic is improved.
+*   **Health Dashboard**: Real-time status monitoring (Connecting → Live → Stale).
 
 ---
 
-## 5) Database model highlights
-### `maps`
-Stores chart artifact metadata and processing metadata, including:
-- `source_hash`, `processing_version`
-- `source_timestamp`, `ingested_at`
-- `source_size_bytes`, `processed_size_bytes`
-- `source_url`
+## 🛠️ Technical Architecture
 
-### `ingest_runs`
-One row per ingest execution with rollup health metrics.
-
-### `ingest_items`
-Per-map attempt log for debugging and reliability analysis.
+- **Core**: Next.js 16 (App Router) & React 19
+- **Image Processing**: `jimp` (Deterministic coloration and masking)
+- **Persistence**: Neon Postgres (Metadata) & Vercel Blob (Storage)
+- **Automation**: GitHub Actions (30-min sync) & Vercel Cron (Daily maintenance)
+- **Styling**: Vanilla CSS with a "Scrapbook" design aesthetic
 
 ---
 
-## 6) Local development
+## 🚀 Getting Started
+
+### Local Development
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Validation:
-```bash
-cd frontend
-npm run lint
-npm run build
-```
-
-Optional local Vercel routing (repo root):
-```bash
-vercel dev
-```
+### Deployment
+AtmoLens is optimized for Vercel. Ensure the following Environment Variables are configured:
+*   `POSTGRES_URL`: Connection string for Neon.
+*   `BLOB_READ_WRITE_TOKEN`: Access for Vercel Blob storage.
 
 ---
 
-## 7) Configuration
-Required:
-- `POSTGRES_URL`
-- `BLOB_READ_WRITE_TOKEN`
-
-Optional:
-- `BLOB_ACCESS=private|public`
-- `ENABLE_GEOMET_WMS=true|false`
-- `NEXT_PUBLIC_ENABLE_WMS=true|false`
+## ⚖️ Legal & Attribution
+*   **Data Source**: Environment and Climate Change Canada (ECCC).
+*   **License**: This project is open-source and operates under the [Open Government Licence - Canada](https://open.canada.ca/en/open-government-licence-canada).
+*   **Non-Endorsement**: This project is not affiliated with or endorsed by ECCC.
 
 ---
 
-## 8) Operations and maintenance
-See full runbook: **`MAINTENANCE.md`**
+## 🤝 Contributors & Acknowledgments
+AtmoLens was developed by **Priyanshu** with the assistance of:
 
-It covers:
-- health checks
-- stale-feed triage
-- manual run flow
-- incident diagnosis
-- deployment verification
+- **Claude (Anthropic)**: Architecture design and initial pipeline development.
+- **Antigravity (Google DeepMind)**: UI/UX engineering, Zoom/Pan implementation, and pipeline hardening.
+- **Vercel**: Infrastructure and storage.
 
 ---
-
-## 9) Legal and attribution
-- Source: Environment and Climate Change Canada (ECCC)
-- Runtime UI includes:
-  - Data Server End-use Licence reference
-  - Open Government Licence - Canada reference
-  - non-endorsement language
-
----
-
-## 10) References
-- ECCC licence: https://eccc-msc.github.io/open-data/licence/readme_en/
-- ECCC usage policy: https://eccc-msc.github.io/open-data/usage-policy/readme_en/
-- Herbie repository: https://github.com/blaylockbk/Herbie
-- Herbie GDPS docs: https://herbie.readthedocs.io/en/2025.12.0/gallery/eccc_models/gdps.html
-
----
-
-## 11) Contributors & Acknowledgments
-This project was developed with the assistance of:
-
-| Contributor | Role |
-|---|---|
-| **Claude** (Anthropic) | AI pair-programming, architecture design, and autonomous pipeline development |
-| **Antigravity** (Google DeepMind) | UI engineering, StatusBar redesign, archive simplification, and Git hardening |
-| **Copilot** (GitHub) | Dependency security analysis and code review |
-| **Vercel** | Hosting platform, Blob storage, serverless runtime, and cron infrastructure |
+*Created with passion for Geospatial Science and Clean Code.*
