@@ -110,12 +110,34 @@ export function MapViewer({ selectedType }: MapViewerProps) {
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || !mapContainerRef.current || !imageRef.current) return;
     e.preventDefault();
-    setOffset({
-      x: e.clientX - dragStart.x,
-      y: e.clientY - dragStart.y
-    });
+    
+    const newX = e.clientX - dragStart.x;
+    const newY = e.clientY - dragStart.y;
+
+    // Calculate bounds
+    // We want to prevent the image from being panned completely out of view.
+    // A simple approach is to clamp the offset based on the zoomed image size.
+    const container = mapContainerRef.current.getBoundingClientRect();
+    const img = imageRef.current.getBoundingClientRect();
+    
+    // Allow panning but keep at least 100px of the image visible in each dimension
+    // if the image is larger than the container.
+    let clampedX = newX;
+    let clampedY = newY;
+
+    if (zoom > 1) {
+        const maxX = (img.width / 2);
+        const maxY = (img.height / 2);
+        clampedX = Math.max(-maxX, Math.min(maxX, newX));
+        clampedY = Math.max(-maxY, Math.min(maxY, newY));
+    } else {
+        clampedX = 0;
+        clampedY = 0;
+    }
+
+    setOffset({ x: clampedX, y: clampedY });
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
