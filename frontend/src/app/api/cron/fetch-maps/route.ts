@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { put } from "@vercel/blob";
+import { put, del } from "@vercel/blob";
 import {
   beginIngestRun,
   finalizeIngestRun,
@@ -363,6 +363,15 @@ export async function GET(request: NextRequest) {
                     access: BLOB_ACCESS,
                     contentType: "image/png",
                 });
+
+                // Delete the old blob from storage since put() generates a new one
+                if (stale.blob_url && stale.blob_url !== newBlobUrl) {
+                    try {
+                        await del(stale.blob_url);
+                    } catch (delErr) {
+                        console.error(`Failed to delete old blob ${stale.blob_url} for map ${stale.id}:`, delErr);
+                    }
+                }
 
                 // Update database
                 await updateMapMetadata(stale.id, newBlobUrl, newProcessedHash, PROCESSING_VERSION, processedBytes.byteLength);

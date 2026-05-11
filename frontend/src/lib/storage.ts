@@ -450,9 +450,14 @@ export async function cleanupOldMaps(daysToKeep = 90) {
   const rows = await sql`
     DELETE FROM maps
     WHERE timestamp < NOW() - ${intervalText}::interval
-    RETURNING id;
+    RETURNING id, blob_url, original_blob_url;
   `;
-  return rows.length;
+  const deletedUrls: string[] = [];
+  for (const row of rows) {
+    if (row.blob_url) deletedUrls.push(String(row.blob_url));
+    if (row.original_blob_url) deletedUrls.push(String(row.original_blob_url));
+  }
+  return { deletedCount: rows.length, deletedUrls };
 }
 
 export async function saveNote(note: string) {
