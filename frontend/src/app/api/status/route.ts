@@ -65,6 +65,7 @@ export async function GET() {
               summary: lastRun.summary ?? null,
             }
           : null,
+        latest_items: latestRun.items,
       },
     });
   } catch (error: unknown) {
