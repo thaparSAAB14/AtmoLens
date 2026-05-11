@@ -3,7 +3,7 @@ import { initDb, getDb } from "@/lib/storage";
 import { list, del } from "@vercel/blob";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300; // max allowed
+export const maxDuration = 60; // Hobby max allowed
 
 export async function GET(request: NextRequest) {
   try {
