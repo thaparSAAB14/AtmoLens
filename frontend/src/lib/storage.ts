@@ -375,14 +375,18 @@ export async function isLatestMapSignature(
   );
 }
 
-export async function getStaleMaps(targetVersion: string, limit = 10, offset = 0) {
+export async function getStaleMaps(limit = 10, offset = 0) {
   await initDb();
   const sql = getDb();
   return await sql`
     SELECT *
     FROM maps
-    WHERE (processing_version IS NULL OR processing_version <> ${targetVersion})
-      AND original_blob_url IS NOT NULL
+    WHERE original_blob_url IS NOT NULL
+      AND (
+        processing_version IS NULL 
+        OR (map_type = 'upper_850hpa' AND processing_version <> 'enhancer-v13')
+        OR (map_type <> 'upper_850hpa' AND processing_version <> 'enhancer-v12')
+      )
     ORDER BY timestamp DESC
     LIMIT ${limit} OFFSET ${offset};
   `;

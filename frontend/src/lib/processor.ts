@@ -408,6 +408,8 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
       overlay = await loadOverlay("overlay.png", width, height);
   } else if (isSurfaceHem) {
       overlay = await loadOverlay("northamerica_covergae.png", width, height);
+  } else if (mapType === "upper_850hpa") {
+      overlay = await loadOverlay("850_overlay.png", width, height);
   } else if (isUpperOverlayTarget) {
       overlay = await loadOverlay("upper_overlay_scaled.png", width, height);
 

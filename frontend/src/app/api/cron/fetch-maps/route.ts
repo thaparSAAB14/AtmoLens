@@ -33,7 +33,9 @@ const SOURCES: Record<string, string> = {
   upper_850hpa: "https://weather.gc.ca/data/analysis/saa_100.gif",
 };
 
-const PROCESSING_VERSION = "enhancer-v12";
+function getProcessingVersion(mapType: string) {
+  return mapType === "upper_850hpa" ? "enhancer-v13" : "enhancer-v12";
+}
 const MAX_FETCH_ATTEMPTS = 3;
 const FETCH_TIMEOUT_MS = 25_000;
 const PROCESS_TIMEOUT_MS = 40_000;
@@ -178,14 +180,15 @@ async function processSingleMap(
     }
 
     const sourceHash = crypto.createHash("sha256").update(sourceBytes).digest("hex");
+    const version = getProcessingVersion(mapType);
     const processedHash = crypto
       .createHash("sha256")
-      .update(PROCESSING_VERSION)
+      .update(version)
       .update(mapType)
       .update(sourceHash)
       .digest("hex");
 
-    if (await isLatestMapSignature(mapType, sourceHash, PROCESSING_VERSION)) {
+    if (await isLatestMapSignature(mapType, sourceHash, version)) {
       const elapsed = Date.now() - startedAt;
       await logIngestItem({
         runId,
@@ -237,7 +240,7 @@ async function processSingleMap(
       timestamp: ingestTimestamp,
       hash: processedHash,
       sourceHash,
-      processingVersion: PROCESSING_VERSION,
+      processingVersion: version,
       sourceTimestamp,
       sourceSizeBytes: sourceBytes.byteLength,
       processedSizeBytes: processedBytes.byteLength,
@@ -318,7 +321,7 @@ export async function GET(request: NextRequest) {
     const rawTrigger = request.nextUrl.searchParams.get("trigger") ?? "cron";
     // Sanitize trigger to alphanumeric + hyphen only
     const trigger = rawTrigger.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 32);
-    runId = await beginIngestRun(trigger, PROCESSING_VERSION, sourceEntries.length);
+    runId = await beginIngestRun(trigger, "enhancer-v12-v13-mixed", sourceEntries.length);
 
     let okCount = 0;
     let skippedCount = 0;
@@ -335,7 +338,7 @@ export async function GET(request: NextRequest) {
     // Update a batch of stale maps (on older processing versions) to the latest version
     let reprocessedCount = 0;
     try {
-        const staleMaps = await getStaleMaps(PROCESSING_VERSION, 40);
+        const staleMaps = await getStaleMaps(40);
         for (const stale of staleMaps) {
             try {
                 // Fetch the original gif
@@ -351,9 +354,10 @@ export async function GET(request: NextRequest) {
                     "Historical re-processing timed out."
                 );
 
+                const staleVersion = getProcessingVersion(stale.map_type);
                 const newProcessedHash = crypto
                     .createHash("sha256")
-                    .update(PROCESSING_VERSION)
+                    .update(staleVersion)
                     .update(stale.map_type)
                     .update(stale.source_hash)
                     .digest("hex");
@@ -374,7 +378,7 @@ export async function GET(request: NextRequest) {
                 }
 
                 // Update database
-                await updateMapMetadata(stale.id, newBlobUrl, newProcessedHash, PROCESSING_VERSION, processedBytes.byteLength);
+                await updateMapMetadata(stale.id, newBlobUrl, newProcessedHash, staleVersion, processedBytes.byteLength);
                 reprocessedCount++;
             } catch (err) {
                 console.error(`Failed to re-process stale map ${stale.id}:`, err);
@@ -401,7 +405,7 @@ export async function GET(request: NextRequest) {
         status: "completed",
         run_id: runId,
         run_status: runStatus,
-        processing_version: PROCESSING_VERSION,
+        processing_version: "enhancer-v12-v13-mixed",
         reprocessed: reprocessedCount,
         summary,
       },
