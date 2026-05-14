@@ -176,7 +176,7 @@ export async function getIngestLockDiagnostics(staleThresholdMinutes = 30): Prom
   const sql = getDb();
 
   const lockProbe = await sql`SELECT pg_try_advisory_lock(${INGEST_LOCK_KEY}) AS locked;`;
-  const lockHeld = !Boolean(lockProbe[0]?.locked);
+  const lockHeld = lockProbe[0]?.locked !== true;
   if (!lockHeld) {
     await sql`SELECT pg_advisory_unlock(${INGEST_LOCK_KEY});`;
   }
@@ -276,7 +276,7 @@ export async function tryBreakStaleIngestLock(staleThresholdMinutes = 30): Promi
   }
 
   const reacquire = await sql`SELECT pg_try_advisory_lock(${INGEST_LOCK_KEY}) AS locked;`;
-  if (!Boolean(reacquire[0]?.locked)) {
+  if (reacquire[0]?.locked !== true) {
     return { attempted: true, succeeded: false, reason: "lock-still-held-after-termination", diagnostics };
   }
 

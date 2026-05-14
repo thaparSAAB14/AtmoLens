@@ -9,11 +9,25 @@ const DEFAULT_SOURCE_URL = "https://weather.gc.ca/data/analysis/saa_100.gif";
 const DEFAULT_BLOB_QUOTA_BYTES = 1_000_000_000;
 const DEFAULT_BLOB_SCAN_LIMIT = 3000;
 const FETCH_TIMEOUT_MS = 15_000;
+const ALLOWED_SOURCE_HOSTS = new Set(["weather.gc.ca"]);
 
 function parsePositiveInt(value: string | null | undefined, fallback: number): number {
+  if (!value || value.trim() === "") return fallback;
   const parsed = Number.parseInt(value ?? "", 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
   return parsed;
+}
+
+function normalizeDiagnosticSourceUrl(value: string | null): string {
+  if (!value || value.trim() === "") return DEFAULT_SOURCE_URL;
+  try {
+    const parsed = new URL(value);
+    if (parsed.protocol !== "https:") return DEFAULT_SOURCE_URL;
+    if (!ALLOWED_SOURCE_HOSTS.has(parsed.hostname)) return DEFAULT_SOURCE_URL;
+    return parsed.toString();
+  } catch {
+    return DEFAULT_SOURCE_URL;
+  }
 }
 
 async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
@@ -42,7 +56,7 @@ export async function GET(request: NextRequest) {
     DEFAULT_BLOB_SCAN_LIMIT
   );
   const staleLockMinutes = parsePositiveInt(request.nextUrl.searchParams.get("lock_stale_minutes"), 30);
-  const sourceUrl = request.nextUrl.searchParams.get("source_url") ?? DEFAULT_SOURCE_URL;
+  const sourceUrl = normalizeDiagnosticSourceUrl(request.nextUrl.searchParams.get("source_url"));
 
   const startedAt = Date.now();
 

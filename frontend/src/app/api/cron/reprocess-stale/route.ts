@@ -143,9 +143,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    let status: "completed" | "partial" | "failed" = "completed";
+    if (failures.length > 0 && reprocessedCount > 0) {
+      status = "partial";
+    } else if (failures.length > 0) {
+      status = "failed";
+    }
+
     return NextResponse.json(
       {
-        status: failures.length === 0 ? "completed" : reprocessedCount > 0 ? "partial" : "failed",
+        status,
         stale_batch: staleBatchSize,
         stale_candidates: staleMaps.length,
         reprocessed: reprocessedCount,
