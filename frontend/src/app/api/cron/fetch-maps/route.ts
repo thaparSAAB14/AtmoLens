@@ -4,12 +4,14 @@ import { put, del } from "@vercel/blob";
 import {
   beginIngestRun,
   finalizeIngestRun,
+  getIngestLockDiagnostics,
   getStaleMaps,
   initDb,
   isLatestMapSignature,
   logIngestItem,
   releaseIngestLock,
   storeMapMetadata,
+  tryBreakStaleIngestLock,
   tryAcquireIngestLock,
   updateMapMetadata,
 } from "@/lib/storage";
@@ -40,6 +42,8 @@ const MAX_FETCH_ATTEMPTS = 3;
 const FETCH_TIMEOUT_MS = 25_000;
 const PROCESS_TIMEOUT_MS = 40_000;
 const MIN_SOURCE_BYTES = 4_000;
+const DEFAULT_STALE_REPROCESS_BATCH = 5;
+const MAX_STALE_REPROCESS_BATCH = 40;
 
 const BLOB_ACCESS: "public" | "private" =
   process.env.BLOB_ACCESS === "public" ? "public" : "private";
@@ -49,6 +53,18 @@ type SourceFetchResult = {
   attempts: number;
   sourceHttpStatus: number;
 };
+
+class SourceFetchError extends Error {
+  attempts: number;
+  sourceHttpStatus: number;
+
+  constructor(message: string, attempts: number, sourceHttpStatus: number) {
+    super(message);
+    this.name = "SourceFetchError";
+    this.attempts = attempts;
+    this.sourceHttpStatus = sourceHttpStatus;
+  }
+}
 
 type MapRunResult =
   | {
@@ -111,7 +127,19 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Respons
   }
 }
 
-async function fetchSourceWithRetries(url: string): Promise<SourceFetchResult> {
+function parseBatchSize(value: string | null | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(MAX_STALE_REPROCESS_BATCH, Math.max(0, parsed));
+}
+
+function parsePositiveInt(value: string | null | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value ?? "", 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+}
+
+async function fetchSourceWithRetries(mapType: string, url: string): Promise<SourceFetchResult> {
   let attempt = 0;
   let lastError: Error | null = null;
   let lastStatus = 0;
@@ -121,27 +149,53 @@ async function fetchSourceWithRetries(url: string): Promise<SourceFetchResult> {
     try {
       const response = await fetchWithTimeout(url, FETCH_TIMEOUT_MS);
       lastStatus = response.status;
+      console.info(
+        `[IngestRun][${mapType}] source fetch attempt ${attempt}/${MAX_FETCH_ATTEMPTS} -> HTTP ${response.status}`
+      );
       if (response.ok) {
         return { response, attempts: attempt, sourceHttpStatus: response.status };
       }
 
       const retryable = response.status === 404 || response.status === 408 || response.status === 429 || response.status >= 500;
       if (!retryable) {
-        throw new Error(`Fetch failed: ${response.status} ${response.statusText}`);
+        throw new SourceFetchError(
+          `Fetch failed: ${response.status} ${response.statusText}`,
+          attempt,
+          response.status
+        );
       }
+      console.warn(
+        `[IngestRun][${mapType}] retrying fetch after HTTP ${response.status} (attempt ${attempt}/${MAX_FETCH_ATTEMPTS})`
+      );
       if (attempt < MAX_FETCH_ATTEMPTS) {
         await sleep(500 * attempt);
       }
     } catch (error) {
+      if (error instanceof SourceFetchError) {
+        throw error;
+      }
       lastError = error instanceof Error ? error : new Error("Unknown fetch error");
+      console.warn(
+        `[IngestRun][${mapType}] source fetch error on attempt ${attempt}/${MAX_FETCH_ATTEMPTS}: ${lastError.message}`
+      );
       if (attempt < MAX_FETCH_ATTEMPTS) {
         await sleep(500 * attempt);
       }
     }
   }
 
-  if (lastError) throw lastError;
-  throw new Error(`Fetch failed after ${MAX_FETCH_ATTEMPTS} attempts (last status ${lastStatus})`);
+  if (lastError) {
+    throw new SourceFetchError(
+      `Fetch failed after ${MAX_FETCH_ATTEMPTS} attempts: ${lastError.message}`,
+      MAX_FETCH_ATTEMPTS,
+      lastStatus
+    );
+  }
+  throw new SourceFetchError(
+    `Fetch failed after ${MAX_FETCH_ATTEMPTS} attempts (last status ${lastStatus})`,
+    MAX_FETCH_ATTEMPTS,
+    lastStatus
+  );
 }
 
 function parseSourceTimestamp(response: Response): Date | null {
@@ -162,7 +216,7 @@ async function processSingleMap(
   let sourceHttpStatus: number | undefined;
 
   try {
-    const fetchResult = await fetchSourceWithRetries(sourceUrl);
+    const fetchResult = await fetchSourceWithRetries(mapType, sourceUrl);
     attempts = fetchResult.attempts;
     sourceHttpStatus = fetchResult.sourceHttpStatus;
     const response = fetchResult.response;
@@ -275,6 +329,10 @@ async function processSingleMap(
       ms: elapsed,
     };
   } catch (error) {
+    if (error instanceof SourceFetchError) {
+      attempts = Math.max(attempts, error.attempts);
+      sourceHttpStatus = error.sourceHttpStatus || sourceHttpStatus;
+    }
     const elapsed = Date.now() - startedAt;
     const message = error instanceof Error ? error.message : "Unknown map-processing error.";
     await logIngestItem({
@@ -301,12 +359,31 @@ async function processSingleMap(
 export async function GET(request: NextRequest) {
   // ── Auth gate removed to allow frontend Force Sync in open-source deployment ──
 
-  const lockAcquired = await tryAcquireIngestLock();
+  const forceBreakLock = request.nextUrl.searchParams.get("break_lock") === "1";
+  const staleLockThresholdMinutes = parsePositiveInt(
+    request.nextUrl.searchParams.get("lock_stale_minutes"),
+    30
+  );
+  let lockAcquired = await tryAcquireIngestLock();
+  let lockBreakResult: Awaited<ReturnType<typeof tryBreakStaleIngestLock>> | null = null;
+  let lockDiagnostics = null;
+
+  if (!lockAcquired && forceBreakLock) {
+    lockBreakResult = await tryBreakStaleIngestLock(staleLockThresholdMinutes);
+    lockAcquired = await tryAcquireIngestLock();
+  }
+
+  if (!lockAcquired) {
+    lockDiagnostics = await getIngestLockDiagnostics(staleLockThresholdMinutes);
+  }
+
   if (!lockAcquired) {
     return NextResponse.json(
       {
         status: "busy",
         message: "Another ingest run is currently in progress.",
+        lock: lockDiagnostics,
+        lock_break: lockBreakResult,
       },
       { status: 429 }
     );
@@ -319,6 +396,11 @@ export async function GET(request: NextRequest) {
   try {
     await initDb();
     const rawTrigger = request.nextUrl.searchParams.get("trigger") ?? "cron";
+    const includeStaleReprocess = request.nextUrl.searchParams.get("reprocess") === "1";
+    const staleBatchSize = parseBatchSize(
+      request.nextUrl.searchParams.get("stale_batch"),
+      DEFAULT_STALE_REPROCESS_BATCH
+    );
     // Sanitize trigger to alphanumeric + hyphen only
     const trigger = rawTrigger.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 32);
     runId = await beginIngestRun(trigger, "enhancer-v12-v13-mixed", sourceEntries.length);
@@ -337,55 +419,61 @@ export async function GET(request: NextRequest) {
     // --- Historical Re-processing Segment ---
     // Update a batch of stale maps (on older processing versions) to the latest version
     let reprocessedCount = 0;
-    try {
-        const staleMaps = await getStaleMaps(40);
+    if (includeStaleReprocess && staleBatchSize > 0) {
+      try {
+        const staleMaps = await getStaleMaps(staleBatchSize);
         for (const stale of staleMaps) {
-            try {
-                // Fetch the original gif
-                const sourceRes = await fetch(stale.original_blob_url, { cache: "no-store" });
-                if (!sourceRes.ok) throw new Error(`Failed to fetch original blob for map ${stale.id}`);
-                
-                const sourceBytes = Buffer.from(await sourceRes.arrayBuffer());
-                
-                // Process with new logic
-                const processedBytes = await withTimeout(
-                    processImage(sourceBytes, stale.map_type),
-                    PROCESS_TIMEOUT_MS,
-                    "Historical re-processing timed out."
-                );
+          try {
+            // Fetch the original gif
+            const sourceRes = await fetch(stale.original_blob_url, { cache: "no-store" });
+            if (!sourceRes.ok) throw new Error(`Failed to fetch original blob for map ${stale.id}`);
 
-                const staleVersion = getProcessingVersion(stale.map_type);
-                const newProcessedHash = crypto
-                    .createHash("sha256")
-                    .update(staleVersion)
-                    .update(stale.map_type)
-                    .update(stale.source_hash)
-                    .digest("hex");
+            const sourceBytes = Buffer.from(await sourceRes.arrayBuffer());
 
-                // Overwrite the processed blob in the same location
-                const { url: newBlobUrl } = await put(stale.filename, processedBytes, {
-                    access: BLOB_ACCESS,
-                    contentType: "image/png",
-                });
+            // Process with new logic
+            const processedBytes = await withTimeout(
+              processImage(sourceBytes, stale.map_type),
+              PROCESS_TIMEOUT_MS,
+              "Historical re-processing timed out."
+            );
 
-                // Delete the old blob from storage since put() generates a new one
-                if (stale.blob_url && stale.blob_url !== newBlobUrl) {
-                    try {
-                        await del(stale.blob_url);
-                    } catch (delErr) {
-                        console.error(`Failed to delete old blob ${stale.blob_url} for map ${stale.id}:`, delErr);
-                    }
-                }
+            const staleVersion = getProcessingVersion(stale.map_type);
+            const newProcessedHash = crypto
+              .createHash("sha256")
+              .update(staleVersion)
+              .update(stale.map_type)
+              .update(stale.source_hash)
+              .digest("hex");
 
-                // Update database
-                await updateMapMetadata(stale.id, newBlobUrl, newProcessedHash, staleVersion, processedBytes.byteLength);
-                reprocessedCount++;
-            } catch (err) {
-                console.error(`Failed to re-process stale map ${stale.id}:`, err);
+            // Overwrite the processed blob in the same location
+            const { url: newBlobUrl } = await put(stale.filename, processedBytes, {
+              access: BLOB_ACCESS,
+              contentType: "image/png",
+            });
+
+            // Delete the old blob from storage since put() generates a new one
+            if (stale.blob_url && stale.blob_url !== newBlobUrl) {
+              try {
+                await del(stale.blob_url);
+              } catch (delErr) {
+                console.error(`Failed to delete old blob ${stale.blob_url} for map ${stale.id}:`, delErr);
+              }
             }
+
+            // Update database
+            await updateMapMetadata(stale.id, newBlobUrl, newProcessedHash, staleVersion, processedBytes.byteLength);
+            reprocessedCount++;
+          } catch (err) {
+            console.error(`Failed to re-process stale map ${stale.id}:`, err);
+          }
         }
-    } catch (error) {
+      } catch (error) {
         console.error("Historical re-processing segment failed:", error);
+      }
+    } else if (!includeStaleReprocess) {
+      console.info("[IngestRun] Inline stale re-processing skipped (set reprocess=1 to enable).");
+    } else {
+      console.info("[IngestRun] Inline stale re-processing skipped due to stale_batch=0.");
     }
 
     const duration = Date.now() - startedAt;
@@ -394,6 +482,7 @@ export async function GET(request: NextRequest) {
       ok: okCount,
       skipped: skippedCount,
       failed: failedCount,
+      reprocessed: reprocessedCount,
       duration_ms: duration,
     };
 

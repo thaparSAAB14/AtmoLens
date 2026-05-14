@@ -17,6 +17,7 @@ export type IngestSummary = {
   ok: number;
   skipped: number;
   failed: number;
+  reprocessed?: number;
   duration_ms: number;
 };
 
@@ -158,6 +159,138 @@ export async function releaseIngestLock(): Promise<void> {
   await initDb();
   const sql = getDb();
   await sql`SELECT pg_advisory_unlock(${INGEST_LOCK_KEY});`;
+}
+
+export type IngestLockDiagnostics = {
+  lockHeld: boolean;
+  holderPid: number | null;
+  holderState: string | null;
+  holderQueryAgeSec: number | null;
+  staleRunId: number | null;
+  staleRunAgeMinutes: number | null;
+  staleThresholdMinutes: number;
+};
+
+export async function getIngestLockDiagnostics(staleThresholdMinutes = 30): Promise<IngestLockDiagnostics> {
+  await initDb();
+  const sql = getDb();
+
+  const lockProbe = await sql`SELECT pg_try_advisory_lock(${INGEST_LOCK_KEY}) AS locked;`;
+  const lockHeld = !Boolean(lockProbe[0]?.locked);
+  if (!lockHeld) {
+    await sql`SELECT pg_advisory_unlock(${INGEST_LOCK_KEY});`;
+  }
+
+  let holderPid: number | null = null;
+  let holderState: string | null = null;
+  let holderQueryAgeSec: number | null = null;
+
+  if (lockHeld) {
+    try {
+      const holderRows = await sql`
+        SELECT a.pid,
+               a.state,
+               EXTRACT(EPOCH FROM (NOW() - COALESCE(a.query_start, a.state_change, a.backend_start)))::int AS query_age_sec
+        FROM pg_locks l
+        JOIN pg_stat_activity a ON a.pid = l.pid
+        WHERE l.locktype = 'advisory'
+          AND l.granted = true
+          AND (l.objid = ${INGEST_LOCK_KEY} OR (l.classid = 0 AND l.objid = ${INGEST_LOCK_KEY}))
+        ORDER BY query_age_sec DESC
+        LIMIT 1;
+      `;
+      const holder = holderRows[0];
+      holderPid = holder?.pid ? Number(holder.pid) : null;
+      holderState = holder?.state ? String(holder.state) : null;
+      holderQueryAgeSec = holder?.query_age_sec ? Number(holder.query_age_sec) : null;
+    } catch {
+      holderPid = null;
+      holderState = null;
+      holderQueryAgeSec = null;
+    }
+  }
+
+  const staleRows = await sql`
+    SELECT id,
+           EXTRACT(EPOCH FROM (NOW() - started_at)) / 60.0 AS age_minutes
+    FROM ingest_runs
+    WHERE status = 'running'
+    ORDER BY started_at ASC
+    LIMIT 1;
+  `;
+  const stale = staleRows[0];
+  const staleAgeMinutes = stale?.age_minutes ? Number(stale.age_minutes) : null;
+  const staleRunId =
+    stale?.id && staleAgeMinutes !== null && staleAgeMinutes >= staleThresholdMinutes
+      ? Number(stale.id)
+      : null;
+
+  return {
+    lockHeld,
+    holderPid,
+    holderState,
+    holderQueryAgeSec,
+    staleRunId,
+    staleRunAgeMinutes: staleAgeMinutes,
+    staleThresholdMinutes,
+  };
+}
+
+export type BreakIngestLockResult = {
+  attempted: boolean;
+  succeeded: boolean;
+  reason: string;
+  diagnostics: IngestLockDiagnostics;
+};
+
+export async function tryBreakStaleIngestLock(staleThresholdMinutes = 30): Promise<BreakIngestLockResult> {
+  await initDb();
+  const sql = getDb();
+  const diagnostics = await getIngestLockDiagnostics(staleThresholdMinutes);
+
+  if (!diagnostics.lockHeld) {
+    return { attempted: false, succeeded: true, reason: "lock-not-held", diagnostics };
+  }
+
+  if (!diagnostics.staleRunId) {
+    return { attempted: false, succeeded: false, reason: "no-stale-running-run", diagnostics };
+  }
+
+  if (!diagnostics.holderPid) {
+    return { attempted: false, succeeded: false, reason: "holder-pid-unavailable", diagnostics };
+  }
+
+  try {
+    const termRows = await sql`SELECT pg_terminate_backend(${diagnostics.holderPid}) AS terminated;`;
+    const terminated = Boolean(termRows[0]?.terminated);
+    if (!terminated) {
+      return { attempted: true, succeeded: false, reason: "terminate-backend-returned-false", diagnostics };
+    }
+  } catch (error) {
+    return {
+      attempted: true,
+      succeeded: false,
+      reason: error instanceof Error ? `terminate-backend-failed: ${error.message}` : "terminate-backend-failed",
+      diagnostics,
+    };
+  }
+
+  const reacquire = await sql`SELECT pg_try_advisory_lock(${INGEST_LOCK_KEY}) AS locked;`;
+  if (!Boolean(reacquire[0]?.locked)) {
+    return { attempted: true, succeeded: false, reason: "lock-still-held-after-termination", diagnostics };
+  }
+
+  await sql`SELECT pg_advisory_unlock(${INGEST_LOCK_KEY});`;
+  await sql`
+    UPDATE ingest_runs
+    SET status = 'failed',
+        finished_at = NOW(),
+        summary = COALESCE(summary, '{}'::jsonb) || jsonb_build_object('lock_break', true, 'lock_break_reason', 'stale lock auto-break')
+    WHERE id = ${diagnostics.staleRunId}
+      AND status = 'running';
+  `;
+
+  return { attempted: true, succeeded: true, reason: "stale-lock-terminated", diagnostics };
 }
 
 export async function logIngestItem(input: IngestItemInput): Promise<void> {
