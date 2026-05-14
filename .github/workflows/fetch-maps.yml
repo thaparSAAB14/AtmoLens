@@ -41,16 +41,26 @@ jobs:
             fi
 
             if [ "${HTTP_CODE}" = "429" ]; then
-              echo "Fetch route busy (another run in progress)."
-              echo "result=busy" >> "$GITHUB_OUTPUT"
-              exit 0
+              echo "Fetch route busy (another run in progress). Retrying..."
+              sleep $((attempt * 20))
+              continue
             fi
 
             sleep $((attempt * 20))
           done
 
+          echo "::warning::Primary trigger did not complete cleanly. Attempting stale-lock break recovery..."
+          BREAK_URL="${ATMO_BASE_URL}/api/cron/fetch-maps?trigger=github-actions-recovery&break_lock=1&lock_stale_minutes=45"
+          BREAK_HTTP_CODE="$(eval curl -sS -o /dev/null -w '%{http_code}' ${AUTH_HEADER} \"${BREAK_URL}\" || true)"
+          echo "Recovery trigger: HTTP ${BREAK_HTTP_CODE}"
+
+          if [ "${BREAK_HTTP_CODE}" = "200" ]; then
+            echo "result=recovered" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           echo "result=failed" >> "$GITHUB_OUTPUT"
-          echo "Failed to trigger fetch run after retries."
+          echo "Failed to trigger fetch run after retries and stale-lock recovery."
           exit 1
 
       - name: Recovery — retry after cooldown

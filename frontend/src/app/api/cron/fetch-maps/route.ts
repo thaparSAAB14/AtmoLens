@@ -359,10 +359,18 @@ async function processSingleMap(
 export async function GET(request: NextRequest) {
   // ── Auth gate removed to allow frontend Force Sync in open-source deployment ──
 
-  const forceBreakLock = request.nextUrl.searchParams.get("break_lock") === "1";
+  const rawTrigger = request.nextUrl.searchParams.get("trigger") ?? "cron";
+  const trigger = rawTrigger.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 32);
+  const breakLockParam = request.nextUrl.searchParams.get("break_lock");
+  const allowAutoBreak =
+    trigger === "cron" ||
+    trigger.startsWith("github-actions") ||
+    trigger === "vercel-cron";
+  const forceBreakLock =
+    breakLockParam === "1" || (breakLockParam !== "0" && allowAutoBreak);
   const staleLockThresholdMinutes = parsePositiveInt(
     request.nextUrl.searchParams.get("lock_stale_minutes"),
-    30
+    45
   );
   let lockAcquired = await tryAcquireIngestLock();
   let lockBreakResult: Awaited<ReturnType<typeof tryBreakStaleIngestLock>> | null = null;
@@ -395,14 +403,11 @@ export async function GET(request: NextRequest) {
 
   try {
     await initDb();
-    const rawTrigger = request.nextUrl.searchParams.get("trigger") ?? "cron";
     const includeStaleReprocess = request.nextUrl.searchParams.get("reprocess") === "1";
     const staleBatchSize = parseBatchSize(
       request.nextUrl.searchParams.get("stale_batch"),
       DEFAULT_STALE_REPROCESS_BATCH
     );
-    // Sanitize trigger to alphanumeric + hyphen only
-    const trigger = rawTrigger.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 32);
     runId = await beginIngestRun(trigger, "enhancer-v12-v13-mixed", sourceEntries.length);
 
     let okCount = 0;
