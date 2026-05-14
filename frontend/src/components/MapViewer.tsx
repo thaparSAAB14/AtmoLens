@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { getLatestMaps, getImageUrl, MAP_TYPE_LABELS, type MapInfo } from "@/lib/api";
 import { formatTimestamp, formatTimestampLocal, timeAgo } from "@/lib/utils";
 import { Download, Maximize2, Minimize2, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import Loader from "./ui/loader-12";
 
 interface MapViewerProps {
   selectedType: string;
@@ -22,6 +23,7 @@ export function MapViewer({ selectedType }: MapViewerProps) {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isImageLoading, setIsImageLoading] = useState(true);
   
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -171,6 +173,12 @@ export function MapViewer({ selectedType }: MapViewerProps) {
   const imageUrl = currentMap
     ? getImageUrl(isShowingOriginal ? currentMap.original_url! : currentMap.image_url)
     : null;
+
+  useEffect(() => {
+    if (imageUrl) {
+      setIsImageLoading(true);
+    }
+  }, [imageUrl]);
   const utcTimestamp = currentMap?.timestamp ? formatTimestamp(currentMap.timestamp) : "";
   const localTimestamp = currentMap?.timestamp ? formatTimestampLocal(currentMap.timestamp) : "";
 
@@ -345,16 +353,41 @@ export function MapViewer({ selectedType }: MapViewerProps) {
           onMouseLeave={() => setIsDragging(false)}
         >
           {imageUrl && (
-            <img
-              ref={imageRef}
-              src={imageUrl}
-              alt={MAP_TYPE_LABELS[selectedType] || selectedType}
-              className={`max-w-full max-h-full object-contain pointer-events-none transition-transform duration-200 ease-out`}
-              style={{
-                transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
-              }}
-              draggable={false}
-            />
+            <>
+              {isImageLoading && (
+                <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-[var(--surface-container)]/80 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in">
+                  <div className="flex flex-col items-center gap-6">
+                    <Loader />
+                    <div className="w-64 h-1.5 bg-[var(--surface-container-high)] rounded-full overflow-hidden border border-[var(--border)]/30 relative">
+                      <div 
+                        className="absolute inset-0 h-full bg-gradient-to-r from-[var(--accent)]/40 via-[var(--accent)] to-[var(--accent)]/40"
+                        style={{
+                          width: '100%',
+                          animation: 'progress 2s ease-in-out infinite'
+                        }}
+                      />
+                    </div>
+                    <p className="text-[var(--text-muted)] text-[10px] font-mono uppercase tracking-[0.2em] animate-pulse">
+                      Processing Data Layer
+                    </p>
+                  </div>
+                </div>
+              )}
+              <img
+                ref={imageRef}
+                src={imageUrl}
+                alt={MAP_TYPE_LABELS[selectedType] || selectedType}
+                onLoad={() => setIsImageLoading(false)}
+                onError={() => setIsImageLoading(false)}
+                className={`max-w-full max-h-full object-contain pointer-events-none transition-all duration-500 ease-out ${
+                  isImageLoading ? "opacity-0 scale-95" : "opacity-100 scale-100"
+                }`}
+                style={{
+                  transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                }}
+                draggable={false}
+              />
+            </>
           )}
         </div>
 
