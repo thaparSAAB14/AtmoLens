@@ -49,8 +49,6 @@ export function ThreeDWallCalendar({
   // 3D tilt state
   const [tiltX, setTiltX] = React.useState(25)
   const [tiltY, setTiltY] = React.useState(0)
-  const isDragging = React.useRef(false)
-  const dragStart = React.useRef<{ x: number; y: number } | null>(null)
 
   // month days
   const days = eachDayOfInterval({
@@ -61,30 +59,35 @@ export function ThreeDWallCalendar({
   const eventsForDay = (d: Date) =>
     events.filter((ev) => format(new Date(ev.date), "yyyy-MM-dd") === format(d, "yyyy-MM-dd"))
 
-  // wheel tilt
+  // wheel tilt (optional, can keep or remove, let's keep it for scrolling scale or extra tilt)
   const onWheel = (e: React.WheelEvent) => {
     setTiltX((t) => Math.max(0, Math.min(50, t + e.deltaY * 0.02)))
     setTiltY((t) => Math.max(-45, Math.min(45, t + e.deltaX * 0.05)))
   }
 
-  // drag tilt
-  const onPointerDown = (e: React.PointerEvent) => {
-    isDragging.current = true
-    dragStart.current = { x: e.clientX, y: e.clientY }
-    ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
+  // fluid parallax tilt
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!wallRef.current) return;
+    const rect = wallRef.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    // Calculate distance from center (-1 to 1)
+    const normalizedX = (e.clientX - centerX) / (rect.width / 2);
+    const normalizedY = (e.clientY - centerY) / (rect.height / 2);
+
+    // Max rotation angles
+    const maxTiltY = 45; 
+    const maxTiltX = 35;
+    
+    setTiltY(normalizedX * maxTiltY); 
+    setTiltX(25 - (normalizedY * maxTiltX));
   }
 
-  const onPointerMove = (e: React.PointerEvent) => {
-    if (!isDragging.current || !dragStart.current) return
-    const dx = e.clientX - dragStart.current.x
-    const dy = e.clientY - dragStart.current.y
-    setTiltY((t) => Math.max(-60, Math.min(60, t + dx * 0.1)))
-    setTiltX((t) => Math.max(0, Math.min(60, t - dy * 0.1)))
-    dragStart.current = { x: e.clientX, y: e.clientY }
-  }
-  const onPointerUp = () => {
-    isDragging.current = false
-    dragStart.current = null
+  const handlePointerLeave = () => {
+    // Smoothly return to center
+    setTiltX(25);
+    setTiltY(0);
   }
 
   const gap = 12
@@ -115,11 +118,9 @@ export function ThreeDWallCalendar({
       <div
         ref={wallRef}
         onWheel={onWheel}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        className="w-full h-[600px] flex items-center justify-center cursor-grab active:cursor-grabbing overflow-visible"
+        onPointerMove={handlePointerMove}
+        onPointerLeave={handlePointerLeave}
+        className="w-full h-[600px] flex items-center justify-center overflow-visible"
         style={{ perspective: 1200 }}
       >
         <div
@@ -128,7 +129,7 @@ export function ThreeDWallCalendar({
             width: columns * (panelWidth + gap),
             transformStyle: "preserve-3d",
             transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
-            transition: "transform 120ms linear",
+            transition: "transform 300ms cubic-bezier(0.25, 0.8, 0.25, 1)",
           }}
         >
           <div
