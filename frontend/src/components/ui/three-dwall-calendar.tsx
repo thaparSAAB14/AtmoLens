@@ -153,13 +153,13 @@ export function ThreeDWallCalendar({
               
               // Only highlight the whole card if it has events
               const cardClass = hasEvents 
-                ? "h-full overflow-hidden bg-[var(--surface-container)] border border-[var(--accent)] shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)] hover:shadow-[0_0_25px_rgba(var(--accent-rgb),0.4)] transition-all duration-300 hover:scale-[1.15] hover:-translate-y-2 hover:z-50 cursor-pointer" 
+                ? "h-full overflow-hidden bg-[var(--surface-container)] border border-[var(--accent)] shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)] hover:shadow-[0_0_25px_rgba(var(--accent-rgb),0.4)] transition-all duration-300 hover:scale-[1.15] hover:-translate-y-2 hover:z-50 cursor-pointer pointer-events-auto" 
                 : "h-full overflow-hidden bg-[var(--surface)] border border-[var(--border)] opacity-60";
 
               return (
                 <div
                   key={day.toISOString()}
-                  className="relative group"
+                  className={cn("relative group", !hasEvents && "pointer-events-none")}
                   onClick={() => hasEvents && onDayClick?.(day)}
                   style={{
                     transform: `translateZ(${z}px)`,
