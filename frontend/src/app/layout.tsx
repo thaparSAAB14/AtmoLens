@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Banner } from "@/components/ui/banner";
 import StyledComponentsRegistry from "@/lib/registry";
 
 const bodyFont = Bricolage_Grotesque({
@@ -66,6 +67,24 @@ export default function RootLayout({
       >
         <StyledComponentsRegistry>
           <ThemeProvider>
+            <Banner
+              id="opensource-banner"
+              variant="rainbow"
+              rainbowColors={[
+                "rgba(231,77,255,0.77)",
+                "rgba(0,149,255,0.56)",
+                "transparent",
+                "rgba(131,255,166,0.66)",
+                "transparent",
+                "rgba(231,77,255,0.77)",
+                "transparent",
+              ]}
+            >
+              🚀 AtmoLens is now fully Open-Source!{" "}
+              <a href="https://github.com/thaparSAAB14/AtmoLens" target="_blank" rel="noopener noreferrer" className="underline font-bold ml-1 hover:text-white/80 transition-colors">
+                Star it on GitHub
+              </a>
+            </Banner>
             <Navbar />
             <main className="min-h-screen">{children}</main>
             <Footer />

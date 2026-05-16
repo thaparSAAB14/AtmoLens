@@ -1,19 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  getArchive,
-  getImageUrl,
-  MAP_TYPE_LABELS,
-  MAP_TYPE_GROUPS,
-  type ArchiveEntry,
-  type ArchiveResponse,
-} from "@/lib/api";
+import { getArchive, getImageUrl, MAP_TYPE_LABELS, type ArchiveEntry, type ArchiveResponse } from "@/lib/api";
 import { formatTimestamp, formatTimestampLocal } from "@/lib/utils";
-import { Calendar, ChevronDown, Database, Download, RefreshCw } from "lucide-react";
+import { Calendar, Download, RefreshCw, X, Database } from "lucide-react";
 import Image from "next/image";
-
-const WINDOW_OPTIONS = [7, 30, 90] as const;
+import { ThreeDWallCalendar, type CalendarEvent } from "./ui/three-dwall-calendar";
 
 function formatBytes(bytes?: number | null): string {
   if (!bytes || bytes <= 0) return "—";
@@ -31,10 +23,12 @@ export function ArchiveGallery() {
   const [data, setData] = useState<ArchiveResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [daysWindow, setDaysWindow] = useState<number>(30);
-  const [selectedType, setSelectedType] = useState<string>("all");
-  const [selectedDay, setSelectedDay] = useState<string>("all");
-  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+  
+  // Always fetch 90 days to populate the calendar
+  const daysWindow = 90;
+  
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,77 +49,13 @@ export function ArchiveGallery() {
 
   const archive = useMemo(() => data?.archive ?? [], [data?.archive]);
 
-  /* ── Derive available types, excluding Model Guidance ───────────────── */
-  const availableTypes = useMemo(() => {
-    const validTypes = new Set<string>();
-    for (const group of Object.keys(MAP_TYPE_GROUPS)) {
-      for (const t of MAP_TYPE_GROUPS[group]) {
-        validTypes.add(t);
-      }
-    }
-    const typeSet = new Set<string>();
-    for (const entry of archive) {
-      if (validTypes.has(entry.map_type)) {
-        typeSet.add(entry.map_type);
-      }
-    }
-    return Array.from(typeSet).sort(
-      (a, b) => (MAP_TYPE_LABELS[a] || a).localeCompare(MAP_TYPE_LABELS[b] || b)
-    );
+  const calendarEvents = useMemo<CalendarEvent[]>(() => {
+    return archive.map((entry) => ({
+      id: entry.path || `${entry.map_type}-${entry.filename}`,
+      title: MAP_TYPE_LABELS[entry.map_type] || entry.map_type,
+      date: entry.timestamp,
+    }));
   }, [archive]);
-
-  useEffect(() => {
-    if (selectedType !== "all" && !availableTypes.includes(selectedType)) {
-      setSelectedType("all");
-    }
-  }, [availableTypes, selectedType]);
-
-  /* ── Filter archive ─────────────────────────────────────────────────── */
-  const typeFiltered = useMemo(() => {
-    const validTypes = new Set<string>();
-    for (const group of Object.keys(MAP_TYPE_GROUPS)) {
-      for (const t of MAP_TYPE_GROUPS[group]) {
-        validTypes.add(t);
-      }
-    }
-    return archive.filter((entry) => {
-      if (!validTypes.has(entry.map_type)) return false;
-      if (selectedType !== "all" && entry.map_type !== selectedType) return false;
-      return true;
-    });
-  }, [archive, selectedType]);
-
-  /* ── Timeline from filtered data ────────────────────────────────────── */
-  const timeline = useMemo(() => {
-    const dayMap = new Map<string, number>();
-    for (const entry of typeFiltered) {
-      const day = entry.timestamp.slice(0, 10);
-      dayMap.set(day, (dayMap.get(day) ?? 0) + 1);
-    }
-    return Array.from(dayMap.entries())
-      .map(([day, count]) => ({ day, count }))
-      .sort((a, b) => b.day.localeCompare(a.day));
-  }, [typeFiltered]);
-
-  const filtered = useMemo(() => {
-    if (selectedDay === "all") return typeFiltered;
-    return typeFiltered.filter((entry) => entry.timestamp.startsWith(selectedDay));
-  }, [typeFiltered, selectedDay]);
-
-  /* ── Group by day for rendering ─────────────────────────────────────── */
-  const groupedByDay = useMemo(() => {
-    const map = new Map<string, ArchiveEntry[]>();
-    for (const entry of filtered) {
-      const day = entry.timestamp.slice(0, 10);
-      if (!map.has(day)) map.set(day, []);
-      map.get(day)!.push(entry);
-    }
-    const sortedDays = Array.from(map.keys()).sort((a, b) => b.localeCompare(a));
-    for (const day of sortedDays) {
-      map.get(day)!.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-    }
-    return { map, sortedDays };
-  }, [filtered]);
 
   const handleDownload = async (url: string, filename: string) => {
     try {
@@ -143,8 +73,6 @@ export function ArchiveGallery() {
       window.open(url, "_blank");
     }
   };
-
-  /* ── States ─────────────────────────────────────────────────────────── */
 
   if (loading) {
     return (
@@ -168,26 +96,10 @@ export function ArchiveGallery() {
     );
   }
 
-  if (archive.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <Calendar className="mx-auto text-[var(--text-muted)] mb-4" size={48} />
-        <p className="text-[var(--text-secondary)]">No archived maps yet</p>
-        <p className="text-[var(--text-muted)] text-sm mt-1">
-          The archive fills after the first successful autonomous sync.
-        </p>
-        <button
-          onClick={() => void load()}
-          className="mt-5 px-4 py-2 rounded-lg bg-[var(--accent-dim)] text-[var(--accent)] text-sm font-medium hover:bg-[var(--accent)]/15 transition-colors"
-        >
-          Refresh
-        </button>
-      </div>
-    );
-  }
-
-  const selectedTypeLabel =
-    selectedType === "all" ? "All types" : MAP_TYPE_LABELS[selectedType] || selectedType;
+  // Find all maps for the selected date
+  const selectedDayEntries = selectedDate 
+    ? archive.filter(entry => entry.timestamp.startsWith(selectedDate.toISOString().slice(0, 10)))
+    : [];
 
   return (
     <div className="space-y-6">
@@ -197,255 +109,123 @@ export function ArchiveGallery() {
         </div>
       )}
 
-      {/* ── Unified Filter Bar ──────────────────────────────────────────── */}
-      <div className="glass rounded-2xl p-4 sm:p-5 space-y-4">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Title */}
-          <div className="flex items-center gap-2 text-[var(--text-secondary)] text-xs font-label uppercase tracking-widest">
-            <Database size={14} />
-            Archive
+      {/* Detail View (when a day is clicked) */}
+      {selectedDate ? (
+        <div className="space-y-6 animate-fade-in-up">
+          <div className="glass rounded-2xl p-5 flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-display font-semibold text-[var(--text-primary)]">
+                {selectedDate.toLocaleDateString("en-CA", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </h3>
+              <p className="text-[var(--text-muted)] text-sm mt-1">
+                {selectedDayEntries.length} maps archived on this date.
+              </p>
+            </div>
+            
+            <button
+              onClick={() => setSelectedDate(null)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--surface-container)] text-[var(--text-secondary)] hover:text-white hover:bg-[var(--surface-container-high)] transition-all"
+            >
+              <X size={16} />
+              <span>Back to Calendar</span>
+            </button>
           </div>
 
-          {/* Right side: Days + Type + Refresh */}
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            {/* Days selector */}
-            {WINDOW_OPTIONS.map((option) => (
-              <button
-                key={option}
-                onClick={() => {
-                  setDaysWindow(option);
-                  setSelectedDay("all");
-                }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  daysWindow === option
-                    ? "bg-[var(--accent-dim)] text-[var(--accent)]"
-                    : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                }`}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+            {selectedDayEntries.map((entry) => (
+              <article
+                key={entry.path || `${entry.map_type}-${entry.filename}`}
+                className="group rounded-xl overflow-hidden bg-[var(--surface-container)] border border-[var(--border)]/50 transition-shadow duration-300 hover:shadow-lg hover:shadow-[var(--accent)]/5 flex flex-col"
               >
-                {option}d
-              </button>
-            ))}
+                <div className="relative aspect-[4/3] overflow-hidden bg-[var(--surface-variant)]">
+                  <a
+                    href={getImageUrl(entry.image_url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Open ${MAP_TYPE_LABELS[entry.map_type] || entry.map_type}`}
+                  >
+                    <Image
+                      src={getImageUrl(entry.image_url)}
+                      alt={MAP_TYPE_LABELS[entry.map_type] || entry.map_type}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  </a>
+                </div>
 
-            {/* Divider */}
-            <div className="w-px h-5 bg-[var(--border)] mx-1 hidden sm:block" />
-
-            {/* Type dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setTypeDropdownOpen((v) => !v)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--surface-container)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all min-w-[120px] justify-between"
-              >
-                <span className="truncate max-w-[140px]">{selectedTypeLabel}</span>
-                <ChevronDown
-                  size={12}
-                  className={`transition-transform duration-200 flex-shrink-0 ${typeDropdownOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-              {typeDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setTypeDropdownOpen(false)}
-                  />
-                  <div className="absolute right-0 top-full mt-1 z-50 w-64 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xl overflow-hidden animate-fade-in-up">
-                    <button
-                      onClick={() => {
-                        setSelectedType("all");
-                        setTypeDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-4 py-2.5 text-xs transition-colors ${
-                        selectedType === "all"
-                          ? "bg-[var(--accent-dim)] text-[var(--accent)]"
-                          : "text-[var(--text-secondary)] hover:bg-[var(--surface-container)]"
-                      }`}
-                    >
-                      All map types
-                    </button>
-                    {Object.entries(MAP_TYPE_GROUPS).map(([group, types]) => {
-                      const groupTypes = types.filter((t) =>
-                        availableTypes.includes(t)
-                      );
-                      if (groupTypes.length === 0) return null;
-                      return (
-                        <div key={group}>
-                          <div className="px-4 py-1.5 text-[10px] uppercase tracking-widest text-[var(--text-muted)] bg-[var(--surface-container-low)]">
-                            {group}
-                          </div>
-                          {groupTypes.map((mapType) => (
-                            <button
-                              key={mapType}
-                              onClick={() => {
-                                setSelectedType(mapType);
-                                setTypeDropdownOpen(false);
-                              }}
-                              className={`w-full text-left px-4 py-2 text-xs transition-colors ${
-                                selectedType === mapType
-                                  ? "bg-[var(--accent-dim)] text-[var(--accent)]"
-                                  : "text-[var(--text-secondary)] hover:bg-[var(--surface-container)]"
-                              }`}
-                            >
-                              {MAP_TYPE_LABELS[mapType] || mapType}
-                            </button>
-                          ))}
-                        </div>
-                      );
-                    })}
+                <div className="p-4 flex-1 space-y-1.5">
+                  <p className="text-[var(--text-primary)] text-sm font-display font-medium">
+                    {MAP_TYPE_LABELS[entry.map_type] || entry.map_type}
+                  </p>
+                  <div className="text-[var(--text-muted)] text-[11px] space-y-0.5">
+                    <p>Map time: {entry.source_timestamp ? formatTimestamp(entry.source_timestamp) : formatTimestamp(entry.timestamp)}</p>
+                    <p>Ingested: {entry.ingested_at ? formatTimestampLocal(entry.ingested_at) : formatTimestampLocal(entry.timestamp)}</p>
+                    <p>Source: {formatBytes(entry.source_size_bytes)} • Processed: {formatBytes(entry.processed_size_bytes)}</p>
                   </div>
-                </>
-              )}
-            </div>
+                </div>
 
-            {/* Refresh */}
+                <div className="px-4 pb-4 pt-2 flex items-center gap-2 mt-auto">
+                  <button
+                    onClick={() => void handleDownload(getImageUrl(entry.image_url), entry.filename)}
+                    className="flex-1 px-3 py-2 rounded-lg text-xs font-medium bg-[var(--accent-dim)] text-[var(--accent)] hover:bg-[var(--accent)]/15 transition-colors text-center"
+                  >
+                    Download Enhanced
+                  </button>
+                  {entry.original_url && (
+                    <button
+                      onClick={() => void handleDownload(getImageUrl(entry.original_url!), entry.original_filename || entry.filename)}
+                      className="p-2 rounded-lg bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                      title="Download original"
+                      aria-label="Download original"
+                    >
+                      <Download size={16} />
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      ) : (
+        /* Calendar View */
+        <div className="animate-fade-in-up">
+          <div className="flex items-center justify-between mb-6 px-2">
+            <div className="flex items-center gap-2 text-[var(--text-secondary)] text-sm font-label uppercase tracking-widest">
+              <Database size={16} />
+              Interactive Archive
+            </div>
             <button
               onClick={() => void load()}
               className="p-2 rounded-lg bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors"
               title="Refresh archive"
-              aria-label="Refresh archive"
             >
-              <RefreshCw size={14} />
+              <RefreshCw size={16} />
             </button>
           </div>
+          
+          {archive.length === 0 ? (
+            <div className="text-center py-20 glass rounded-2xl">
+              <Calendar className="mx-auto text-[var(--text-muted)] mb-4" size={48} />
+              <p className="text-[var(--text-secondary)]">No archived maps available in this timeframe</p>
+            </div>
+          ) : (
+            <div className="w-full relative overflow-hidden rounded-2xl glass p-2 pt-8 pb-12">
+              <ThreeDWallCalendar 
+                events={calendarEvents} 
+                onDayClick={setSelectedDate} 
+                currentDate={currentDate}
+                onDateChange={setCurrentDate}
+              />
+            </div>
+          )}
         </div>
-
-        {/* ── Day Quick-Jump Chips ──────────────────────────────────────── */}
-        {timeline.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
-              onClick={() => setSelectedDay("all")}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-                selectedDay === "all"
-                  ? "bg-[var(--accent-dim)] text-[var(--accent)]"
-                  : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-              }`}
-            >
-              All days
-            </button>
-            {timeline.slice(0, 14).map((point) => (
-              <button
-                key={point.day}
-                onClick={() => setSelectedDay(point.day)}
-                className={`px-2.5 py-1 rounded-md text-[11px] transition-all ${
-                  selectedDay === point.day
-                    ? "bg-[var(--accent-dim)] text-[var(--accent)]"
-                    : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                }`}
-                title={`${point.day} (${point.count} maps)`}
-              >
-                {point.day.slice(5)} <span className="opacity-60">({point.count})</span>
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Result count */}
-        <div className="text-[var(--text-muted)] text-[11px]">
-          {filtered.length} {filtered.length === 1 ? "map" : "maps"} in{" "}
-          {groupedByDay.sortedDays.length}{" "}
-          {groupedByDay.sortedDays.length === 1 ? "day" : "days"}
-        </div>
-      </div>
-
-      {/* ── Map Cards ──────────────────────────────────────────────────── */}
-      <div className="space-y-5">
-        {groupedByDay.sortedDays.map((day) => {
-          const entries = groupedByDay.map.get(day) ?? [];
-          return (
-            <section key={day} className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-[var(--text-secondary)] text-sm font-label flex items-center gap-2">
-                  <Calendar size={14} className="text-[var(--text-muted)]" />
-                  {new Date(`${day}T00:00:00Z`).toLocaleDateString("en-CA", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    timeZone: "UTC",
-                  })}
-                </h4>
-                <span className="text-[var(--text-muted)] text-xs">
-                  {entries.length} maps
-                </span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {entries.map((entry) => (
-                  <article
-                    key={entry.path || `${entry.map_type}-${entry.filename}`}
-                    className="group rounded-xl overflow-hidden bg-[var(--surface-container)] border border-[var(--border)]/50 transition-shadow duration-300 hover:shadow-lg hover:shadow-[var(--accent)]/5"
-                  >
-                    <div className="relative aspect-[4/3] overflow-hidden bg-[var(--surface-variant)]">
-                      <a
-                        href={getImageUrl(entry.image_url)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`Open ${MAP_TYPE_LABELS[entry.map_type] || entry.map_type}`}
-                      >
-                        <Image
-                          src={getImageUrl(entry.image_url)}
-                          alt={MAP_TYPE_LABELS[entry.map_type] || entry.map_type}
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      </a>
-                    </div>
-
-                    <div className="p-3 space-y-1">
-                      <p className="text-[var(--text-primary)] text-sm font-display font-medium">
-                        {MAP_TYPE_LABELS[entry.map_type] || entry.map_type}
-                      </p>
-                      <p className="text-[var(--text-muted)] text-[11px]">
-                        Map time:{" "}
-                        {entry.source_timestamp
-                          ? formatTimestamp(entry.source_timestamp)
-                          : formatTimestamp(entry.timestamp)}
-                      </p>
-                      <p className="text-[var(--text-muted)] text-[11px]">
-                        Ingested:{" "}
-                        {entry.ingested_at
-                          ? formatTimestampLocal(entry.ingested_at)
-                          : formatTimestampLocal(entry.timestamp)}
-                      </p>
-                      <p className="text-[var(--text-muted)] text-[11px]">
-                        Source: {formatBytes(entry.source_size_bytes)} • Processed:{" "}
-                        {formatBytes(entry.processed_size_bytes)}
-                      </p>
-                    </div>
-
-                    <div className="px-3 pb-3 flex items-center gap-2">
-                      <button
-                        onClick={() =>
-                          void handleDownload(
-                            getImageUrl(entry.image_url),
-                            entry.filename
-                          )
-                        }
-                        className="px-3 py-1.5 rounded-lg text-xs bg-[var(--accent-dim)] text-[var(--accent)] hover:bg-[var(--accent)]/15 transition-colors"
-                      >
-                        Download Enhanced
-                      </button>
-                      {entry.original_url && (
-                        <button
-                          onClick={() =>
-                            void handleDownload(
-                              getImageUrl(entry.original_url!),
-                              entry.original_filename || entry.filename
-                            )
-                          }
-                          className="p-2 rounded-lg bg-[var(--surface-container-high)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-                          title="Download original"
-                          aria-label="Download original"
-                        >
-                          <Download size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          );
-        })}
-      </div>
+      )}
     </div>
   );
 }
