@@ -3,13 +3,13 @@ import crypto from "crypto";
 import { put, del } from "@vercel/blob";
 import {
   beginIngestRun,
+  cleanupOldMaps,
   finalizeIngestRun,
   getIngestLockDiagnostics,
   getStaleMaps,
   initDb,
   isLatestMapSignature,
   logIngestItem,
-  pruneMapsByCount,
   releaseIngestLock,
   storeMapMetadata,
   tryBreakStaleIngestLock,
@@ -405,24 +405,23 @@ export async function GET(request: NextRequest) {
   try {
     await initDb();
 
-    // --- Auto-prune to stay within Vercel Blob 1GB Hobby limit ---
-    // Keep only 5 most recent maps per type before ingesting new ones
+    // --- Auto-cleanup: enforce 30-day archive retention ---
+    // Delete maps older than 30 days to stay within Vercel Blob 1GB Hobby limit
     try {
-      const pruneResult = await pruneMapsByCount(5);
-      if (pruneResult.deletedCount > 0) {
-        console.log(`[AutoPrune] Deleted ${pruneResult.deletedCount} old DB records, ${pruneResult.deletedUrls.length} blob URLs`);
-        // Delete the blobs in batches
-        const PRUNE_BATCH = 50;
-        for (let i = 0; i < pruneResult.deletedUrls.length; i += PRUNE_BATCH) {
+      const cleanupResult = await cleanupOldMaps(30);
+      if (cleanupResult.deletedCount > 0) {
+        console.log(`[AutoCleanup] Deleted ${cleanupResult.deletedCount} maps older than 30 days, ${cleanupResult.deletedUrls.length} blob URLs`);
+        const CLEANUP_BATCH = 50;
+        for (let i = 0; i < cleanupResult.deletedUrls.length; i += CLEANUP_BATCH) {
           try {
-            await del(pruneResult.deletedUrls.slice(i, i + PRUNE_BATCH));
+            await del(cleanupResult.deletedUrls.slice(i, i + CLEANUP_BATCH));
           } catch (delErr) {
-            console.error(`[AutoPrune] Blob delete batch failed:`, delErr);
+            console.error(`[AutoCleanup] Blob delete batch failed:`, delErr);
           }
         }
       }
-    } catch (pruneErr) {
-      console.error("[AutoPrune] Prune failed (non-fatal):", pruneErr);
+    } catch (cleanupErr) {
+      console.error("[AutoCleanup] Cleanup failed (non-fatal):", cleanupErr);
     }
 
     const includeStaleReprocess = request.nextUrl.searchParams.get("reprocess") === "1";
