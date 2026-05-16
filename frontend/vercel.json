@@ -1,8 +1,5 @@
 {
   "version": 2,
-  "buildCommand": "cd frontend && npm install && npm run build",
-  "outputDirectory": "frontend/.next",
-  "framework": "nextjs",
   "crons": [
     {
       "path": "/api/cron/fetch-maps",

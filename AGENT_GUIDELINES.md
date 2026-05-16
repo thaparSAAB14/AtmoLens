@@ -95,7 +95,7 @@ After major changes, update:
 ## 9) Open-source readiness
 - Environment variables must be documented in `frontend/.env.example`.
 - All maintenance routes should use optional `CRON_SECRET` auth consistently.
-- `vercel.json` lives at root (monorepo mode). Do not create a second one in `frontend/`.
+- `vercel.json` lives in `frontend/`. Vercel Root Directory must be set to `frontend`.
 - Cron schedule must respect Hobby plan limits (daily max).
 - GitHub Actions handles the 30-minute polling cadence.
 

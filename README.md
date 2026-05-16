@@ -87,7 +87,7 @@ For the automated fetch scheduler, configure these secrets in your GitHub reposi
 ### Deployment
 AtmoLens is optimized for **Vercel (Hobby tier)**:
 1.  Connect your GitHub repository to Vercel
-2.  Set root directory to `/` (monorepo mode — `vercel.json` handles the build command)
+2.  Set the **Root Directory** to `frontend` in the Vercel project settings
 3.  Configure the environment variables listed above
 4.  Vercel will auto-deploy on push to `main`
 
@@ -111,8 +111,8 @@ AtmoLens/
 │   │   ├── lib/           # Core logic (storage, processor, API client)
 │   │   └── assets/        # Overlay images for map enhancement
 │   ├── public/            # Static assets
-│   └── .env.example       # Environment variable template
-├── vercel.json            # Vercel deployment config (monorepo root)
+│   ├── .env.example       # Environment variable template
+│   └── vercel.json        # Vercel deployment config (crons)
 └── README.md
 ```
 
