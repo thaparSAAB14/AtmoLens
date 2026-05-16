@@ -153,8 +153,11 @@ UI (`frontend/src/components/ArchiveGallery.tsx`) supports:
 - 2026-05-08: Full system audit — security hardening (CRON_SECRET + CSP + X-Frame-Options), dead code purge (14 files + 4 code blocks), performance optimization (overlay caching + alpha fix), dependency cleanup (5 unused packages removed), documentation sync.
 - 2026-05-08: Phase 5 — front detection & styling: multi-tone foreground classification, pressure system (H/L) detection and coloring, 850hpa overlay integration, processing version bumped to enhancer-v7.
 - 2026-05-08: Phase 4 — North America overlay integration: surface maps now use `northamerica_covergae.png` (6488×5161) as primary overlay, processing version bumped to enhancer-v8.
+- 2026-05-12: Added 850hPa-specific overlay (`850_overlay.png`) and map loading animation.
+- 2026-05-16: **Production stabilization** — fixed Vercel Blob storage quota exceeded (1GB Hobby limit). Added `pruneMapsByCount()` and `cleanupOldMaps(30)` with auto-cleanup at every ingestion run. Resolved orphaned blob references causing 500 errors during re-processing. Added time-budgeted execution to prevent Vercel timeout crashes.
+- 2026-05-16: **Open-source hardening** — consolidated dual `vercel.json` files, created `.env.example`, fixed archive default to 30 days, added auth to cleanup route, removed stale dev scripts, updated all "7-day" references to "30-day".
 
 ---
 
-**Last Updated:** 2026-05-08  
-**Version:** 4.2.0 (North America Overlay + Front Detection + Security Hardening)
+**Last Updated:** 2026-05-16  
+**Version:** 4.3.0 (Production Stabilization + Open-Source Hardening)

@@ -6,7 +6,7 @@
   "crons": [
     {
       "path": "/api/cron/fetch-maps",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "regions": [

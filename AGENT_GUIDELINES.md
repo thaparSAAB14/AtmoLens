@@ -31,6 +31,8 @@ Required characteristics:
 - per-map isolation (single map failure should not crash whole run)
 - deterministic dedupe by source hash + processing version
 - stale-map re-processing in batches of 10
+- auto-cleanup via `cleanupOldMaps(30)` before each ingestion cycle
+- time-budgeted execution to prevent Vercel timeout crashes
 
 Do not regress these characteristics when refactoring.
 
@@ -43,7 +45,7 @@ Required behavior:
 - Overlay assets are cached at module level (singleton pattern). Do not reload from disk per invocation.
 - Foreground mask uses Otsu thresholding with 8-neighbor refinement.
 - Overlay compositing must respect alpha channel (do not force transparent pixels to opaque).
-- Overlay selection: surface → `overlay.png`, upper 250/500/700 → `upper_overlay_scaled.png`, 850 → procedural.
+- Overlay selection: surface → `northamerica_covergae.png` + `overlay.png`, upper 250/500/700 → `upper_overlay_scaled.png`, 850 → `850_overlay.png`.
 - Overlay assets live in `frontend/src/assets/`. Do not duplicate them elsewhere.
 
 ---
@@ -90,4 +92,13 @@ After major changes, update:
 
 ---
 
-**Last Updated:** 2026-05-08
+## 9) Open-source readiness
+- Environment variables must be documented in `frontend/.env.example`.
+- All maintenance routes should use optional `CRON_SECRET` auth consistently.
+- `vercel.json` lives at root (monorepo mode). Do not create a second one in `frontend/`.
+- Cron schedule must respect Hobby plan limits (daily max).
+- GitHub Actions handles the 30-minute polling cadence.
+
+---
+
+**Last Updated:** 2026-05-16

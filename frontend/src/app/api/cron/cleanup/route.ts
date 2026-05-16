@@ -7,6 +7,12 @@ export const maxDuration = 120;
 
 export async function GET(request: NextRequest) {
   try {
+    // Optional auth — consistent with other maintenance routes
+    const authHeader = request.headers.get("Authorization");
+    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     // Mode: ?mode=prune (default) keeps N maps per type, ?mode=age deletes by age
     const mode = request.nextUrl.searchParams.get("mode") ?? "prune";
 

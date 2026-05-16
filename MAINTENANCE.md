@@ -11,7 +11,7 @@ This document explains how AtmoLens runs autonomously on Vercel and how to diagn
 - **Processing runtime:** Next.js Route Handlers (Node runtime on Vercel).
 - **Primary storage:** Vercel Blob (imagery) + Neon Postgres (metadata and run logs).
 - **Health endpoint:** `GET /api/status`.
-- **Cron config file:** `frontend/vercel.json` (project root is `frontend` in Vercel).
+- **Cron config file:** `vercel.json` (project root — monorepo mode).
 
 ---
 
@@ -102,14 +102,26 @@ Each run follows strict stages:
 - `POSTGRES_URL` set in Vercel.
 - `BLOB_READ_WRITE_TOKEN` set in Vercel.
 - `BLOB_ACCESS` set (`private` recommended).
-- `ENABLE_GEOMET_WMS` / `NEXT_PUBLIC_ENABLE_WMS` set as intended.
+- `CRON_SECRET` set in Vercel + GitHub Actions secrets.
+- `ARCHIVE_RETENTION_DAYS` set (default: 30).
+- See `frontend/.env.example` for the complete list.
 
 ---
 
-## 9) Capacity notes
+## 9) Storage management (Hobby 1GB limit)
+- The ingestion pipeline auto-runs `cleanupOldMaps(30)` before each fetch cycle.
+- For emergency storage recovery: `GET /api/cron/cleanup?mode=prune&keep=5`
+- For orphaned blob cleanup: `GET /api/cron/cleanup-orphans`
+- Monitor usage in Vercel Dashboard → Usage → Blob Data Storage.
+- Budget: 12 types × ~3MB avg = ~36MB/day → ~1,080MB for 30 days. Auto-prune keeps it within 1GB.
+
+---
+
+## 10) Capacity notes
 - Keep image processing lean; avoid loading many large images in parallel inside one request.
 - Item-level sequential processing is intentional for memory stability.
-- If archive grows beyond UX/perf targets, adjust `days` window defaults and retention policy.
+- 30-day archive retention is enforced by `cleanupOldMaps()` at each ingestion.
+- `pruneMapsByCount()` available as a safety cap for storage overflow.
 
 ---
 

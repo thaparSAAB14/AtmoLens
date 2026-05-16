@@ -43,7 +43,7 @@ const scrapbookNotes = [
   {
     title: "Publish + Archive",
     copy:
-      "Processed maps land in a 7-day archive so you can revisit the last week at a glance.",
+      "Processed maps land in a 30-day archive so you can revisit recent weather at a glance.",
     meta: "Store",
     icon: Archive,
     tilt: "-rotate-1",
@@ -123,7 +123,7 @@ export default function HomePage() {
               className="flex items-center gap-2 px-8 py-3 rounded-xl glass text-[var(--text-secondary)] font-medium hover:bg-[var(--surface-container-high)] hover:text-[var(--text-primary)] transition-all duration-300"
             >
               <Archive size={18} />
-              7-Day Archive
+              30-Day Archive
             </Link>
           </motion.div>
         </motion.div>

@@ -30,7 +30,7 @@ export function ArchiveGallery() {
   const [data, setData] = useState<ArchiveResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [daysWindow, setDaysWindow] = useState<number>(7);
+  const [daysWindow, setDaysWindow] = useState<number>(30);
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedDay, setSelectedDay] = useState<string>("all");
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
