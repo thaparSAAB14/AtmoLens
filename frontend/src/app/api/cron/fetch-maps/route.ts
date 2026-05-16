@@ -422,16 +422,44 @@ export async function GET(request: NextRequest) {
     }
 
     // --- Historical Re-processing Segment ---
-    // Update a batch of stale maps (on older processing versions) to the latest version
+    // Update a batch of stale maps (on older processing versions) to the latest version.
+    // Handles orphaned blobs (deleted from storage but still in DB) gracefully.
+    const REPROCESS_TIME_BUDGET_MS = 8_000;
+    const MAX_FUNCTION_DURATION_MS = 55_000;
     let reprocessedCount = 0;
+    let reprocessSkippedOrphans = 0;
     if (includeStaleReprocess && staleBatchSize > 0) {
       try {
         const staleMaps = await getStaleMaps(staleBatchSize);
         for (const stale of staleMaps) {
+          // Time-budget check: stop early so the run can finalize cleanly
+          const elapsed = Date.now() - startedAt;
+          if (elapsed > MAX_FUNCTION_DURATION_MS - REPROCESS_TIME_BUDGET_MS) {
+            console.log(`[Reprocess] Time budget exhausted after ${elapsed}ms, stopping with ${reprocessedCount} done.`);
+            break;
+          }
+
           try {
-            // Fetch the original gif
+            // Fetch the original gif from blob storage
             const sourceRes = await fetch(stale.original_blob_url, { cache: "no-store" });
-            if (!sourceRes.ok) throw new Error(`Failed to fetch original blob for map ${stale.id}`);
+
+            // If the blob is gone (deleted/orphaned), mark it as current version
+            // so getStaleMaps() stops returning it on every run.
+            if (sourceRes.status === 403 || sourceRes.status === 404) {
+              const targetVersion = getProcessingVersion(stale.map_type);
+              console.warn(`[Reprocess] Blob gone (${sourceRes.status}) for map ${stale.id}, marking as ${targetVersion} to skip future runs.`);
+              await updateMapMetadata(
+                stale.id,
+                stale.blob_url,
+                stale.hash ?? "orphaned",
+                targetVersion,
+                stale.processed_size_bytes ?? 0
+              );
+              reprocessSkippedOrphans++;
+              continue;
+            }
+
+            if (!sourceRes.ok) throw new Error(`Failed to fetch original blob for map ${stale.id} (HTTP ${sourceRes.status})`);
 
             const sourceBytes = Buffer.from(await sourceRes.arrayBuffer());
 
@@ -450,7 +478,7 @@ export async function GET(request: NextRequest) {
               .update(stale.source_hash)
               .digest("hex");
 
-            // Overwrite the processed blob in the same location
+            // Upload new processed blob
             const { url: newBlobUrl } = await put(stale.filename, processedBytes, {
               access: BLOB_ACCESS,
               contentType: "image/png",
@@ -461,7 +489,7 @@ export async function GET(request: NextRequest) {
               try {
                 await del(stale.blob_url);
               } catch (delErr) {
-                console.error(`Failed to delete old blob ${stale.blob_url} for map ${stale.id}:`, delErr);
+                console.error(`[Reprocess] Failed to delete old blob ${stale.blob_url} for map ${stale.id}:`, delErr);
               }
             }
 
@@ -469,11 +497,11 @@ export async function GET(request: NextRequest) {
             await updateMapMetadata(stale.id, newBlobUrl, newProcessedHash, staleVersion, processedBytes.byteLength);
             reprocessedCount++;
           } catch (err) {
-            console.error(`Failed to re-process stale map ${stale.id}:`, err);
+            console.error(`[Reprocess] Failed to re-process stale map ${stale.id}:`, err);
           }
         }
       } catch (error) {
-        console.error("Historical re-processing segment failed:", error);
+        console.error("[Reprocess] Historical re-processing segment failed:", error);
       }
     } else if (!includeStaleReprocess) {
       console.info("[IngestRun] Inline stale re-processing skipped (set reprocess=1 to enable).");
@@ -501,6 +529,7 @@ export async function GET(request: NextRequest) {
         run_status: runStatus,
         processing_version: "enhancer-v12-v13-mixed",
         reprocessed: reprocessedCount,
+        reprocess_orphans_cleared: reprocessSkippedOrphans,
         summary,
       },
       { status: runStatus === "failed" ? 500 : 200 }
