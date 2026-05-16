@@ -6,7 +6,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card"
 import { Trash2 } from "lucide-react"
 import { v4 as uuidv4 } from "uuid"
-import { startOfMonth, endOfMonth, eachDayOfInterval, format } from "date-fns"
+import { subDays, addDays, eachDayOfInterval, format } from "date-fns"
 import { cn } from "@/lib/utils"
 
 export type CalendarEvent = {
@@ -50,10 +50,10 @@ export function ThreeDWallCalendar({
   const [tiltX, setTiltX] = React.useState(25)
   const [tiltY, setTiltY] = React.useState(0)
 
-  // month days
+  // 80 days continuous wall
   const days = eachDayOfInterval({
-    start: startOfMonth(dateRef),
-    end: endOfMonth(dateRef),
+    start: subDays(dateRef, 40),
+    end: addDays(dateRef, 40),
   })
 
   const eventsForDay = (d: Date) =>
@@ -96,24 +96,6 @@ export function ThreeDWallCalendar({
 
   return (
     <div className="space-y-6 select-none relative z-10 w-full overflow-hidden flex flex-col items-center">
-      <div className="flex gap-4 items-center bg-[var(--surface-container)] px-6 py-2 rounded-full border border-[var(--border)] shadow-md z-20">
-        <button 
-          onClick={() => handleSetDateRef((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-          className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
-        >
-          Prev Month
-        </button>
-        <div className="text-lg font-display font-medium w-40 text-center text-[var(--text-primary)]">
-          {format(dateRef, "MMMM yyyy")}
-        </div>
-        <button 
-          onClick={() => handleSetDateRef((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-          className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors"
-        >
-          Next Month
-        </button>
-      </div>
-
       {/* Wall container */}
       <div
         ref={wallRef}
@@ -152,7 +134,7 @@ export function ThreeDWallCalendar({
               
               // Only highlight the whole card if it has events
               const cardClass = hasEvents 
-                ? "h-full overflow-hidden bg-[var(--surface-container)] border border-[var(--accent)] shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)] hover:shadow-[0_0_25px_rgba(var(--accent-rgb),0.3)] transition-all duration-300 hover:scale-105 cursor-pointer" 
+                ? "h-full overflow-hidden bg-[var(--surface-container)] border border-[var(--accent)] shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)] hover:shadow-[0_0_25px_rgba(var(--accent-rgb),0.4)] transition-all duration-300 hover:scale-[1.15] hover:-translate-y-2 hover:z-50 cursor-pointer" 
                 : "h-full overflow-hidden bg-[var(--surface)] border border-[var(--border)] opacity-60";
 
               return (
