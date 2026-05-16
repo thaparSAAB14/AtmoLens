@@ -597,6 +597,36 @@ export async function cleanupOldMaps(daysToKeep = 90) {
   return { deletedCount: rows.length, deletedUrls };
 }
 
+/**
+ * Prune maps to keep only the `keepPerType` most recent per map_type.
+ * Deletes all older records and returns their blob URLs for Vercel Blob deletion.
+ * This is the primary tool for staying within the 1GB Hobby plan storage limit.
+ */
+export async function pruneMapsByCount(keepPerType = 3) {
+  await initDb();
+  const sql = getDb();
+  const safeKeep = Math.max(1, Math.min(50, Math.floor(keepPerType)));
+
+  // Use a CTE to rank rows per map_type and delete those beyond the keep threshold
+  const rows = await sql`
+    WITH ranked AS (
+      SELECT id, blob_url, original_blob_url,
+             ROW_NUMBER() OVER (PARTITION BY map_type ORDER BY timestamp DESC) AS rn
+      FROM maps
+    )
+    DELETE FROM maps
+    WHERE id IN (SELECT id FROM ranked WHERE rn > ${safeKeep})
+    RETURNING id, blob_url, original_blob_url;
+  `;
+
+  const deletedUrls: string[] = [];
+  for (const row of rows) {
+    if (row.blob_url) deletedUrls.push(String(row.blob_url));
+    if (row.original_blob_url) deletedUrls.push(String(row.original_blob_url));
+  }
+  return { deletedCount: rows.length, deletedUrls };
+}
+
 export async function saveNote(note: string) {
   await initDb();
   const sql = getDb();

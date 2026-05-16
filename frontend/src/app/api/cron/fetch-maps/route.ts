@@ -9,6 +9,7 @@ import {
   initDb,
   isLatestMapSignature,
   logIngestItem,
+  pruneMapsByCount,
   releaseIngestLock,
   storeMapMetadata,
   tryBreakStaleIngestLock,
@@ -403,6 +404,27 @@ export async function GET(request: NextRequest) {
 
   try {
     await initDb();
+
+    // --- Auto-prune to stay within Vercel Blob 1GB Hobby limit ---
+    // Keep only 5 most recent maps per type before ingesting new ones
+    try {
+      const pruneResult = await pruneMapsByCount(5);
+      if (pruneResult.deletedCount > 0) {
+        console.log(`[AutoPrune] Deleted ${pruneResult.deletedCount} old DB records, ${pruneResult.deletedUrls.length} blob URLs`);
+        // Delete the blobs in batches
+        const PRUNE_BATCH = 50;
+        for (let i = 0; i < pruneResult.deletedUrls.length; i += PRUNE_BATCH) {
+          try {
+            await del(pruneResult.deletedUrls.slice(i, i + PRUNE_BATCH));
+          } catch (delErr) {
+            console.error(`[AutoPrune] Blob delete batch failed:`, delErr);
+          }
+        }
+      }
+    } catch (pruneErr) {
+      console.error("[AutoPrune] Prune failed (non-fatal):", pruneErr);
+    }
+
     const includeStaleReprocess = request.nextUrl.searchParams.get("reprocess") === "1";
     const staleBatchSize = parseBatchSize(
       request.nextUrl.searchParams.get("stale_batch"),
