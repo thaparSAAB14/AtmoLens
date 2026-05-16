@@ -47,10 +47,24 @@ export function ThreeDWallCalendar({
   const containerRef = React.useRef<HTMLDivElement | null>(null)
   const wallRef = React.useRef<HTMLDivElement | null>(null)
 
-  // 80 days continuous wall
+  // Calculate date bounds from actual events (10 days padding)
+  const { minDate, maxDate } = React.useMemo(() => {
+    if (!events || events.length === 0) {
+      return { 
+        minDate: subDays(dateRef, 10), 
+        maxDate: addDays(dateRef, 10) 
+      };
+    }
+    const timestamps = events.map(e => new Date(e.date).getTime());
+    return {
+      minDate: new Date(Math.min(...timestamps)),
+      maxDate: new Date(Math.max(...timestamps))
+    };
+  }, [events, dateRef]);
+
   const days = eachDayOfInterval({
-    start: subDays(dateRef, 40),
-    end: addDays(dateRef, 40),
+    start: subDays(minDate, 10),
+    end: addDays(maxDate, 10),
   })
 
   const eventsForDay = (d: Date) =>
@@ -93,6 +107,10 @@ export function ThreeDWallCalendar({
   const gap = 12
   const rowCount = Math.ceil(days.length / columns)
   const wallCenterRow = (rowCount - 1) / 2
+  
+  // Dynamically calculate height to prevent footer overlap
+  const gridHeight = rowCount * (panelHeight + gap)
+  const containerHeight = Math.max(600, gridHeight + 100)
 
   return (
     <div className="space-y-6 select-none relative z-10 w-full overflow-visible flex flex-col items-center">
@@ -102,8 +120,8 @@ export function ThreeDWallCalendar({
         onWheel={onWheel}
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
-        className="w-full h-[600px] flex items-center justify-center overflow-visible"
-        style={{ perspective: 1200 }}
+        className="w-full flex items-center justify-center overflow-visible"
+        style={{ perspective: 1200, minHeight: containerHeight }}
       >
         <div
           ref={wallRef}
@@ -151,7 +169,7 @@ export function ThreeDWallCalendar({
                   <Card className={cardClass}>
                     <CardContent className="p-3 h-full flex flex-col justify-between">
                       <div className="flex justify-between items-start">
-                        <div className={cn("text-lg font-display font-bold", hasEvents ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{format(day, "d")}</div>
+                        <div className={cn("text-lg font-display font-bold", hasEvents ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{format(day, "MMM d")}</div>
                         <div className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{format(day, "EEE")}</div>
                       </div>
 
