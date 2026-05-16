@@ -86,9 +86,9 @@ export function ThreeDWallCalendar({
     const normalizedX = (e.clientX - centerX) / (rect.width / 2);
     const normalizedY = (e.clientY - centerY) / (rect.height / 2);
 
-    // Max rotation angles
-    const maxTiltY = 45; 
-    const maxTiltX = 35;
+    // Max rotation angles - reduced for subtle, smooth tilt
+    const maxTiltY = 15; 
+    const maxTiltX = 10;
     
     // Inverse rotation: where mouse is, that side comes forward
     const newTiltY = -normalizedX * maxTiltY; 
@@ -130,7 +130,7 @@ export function ThreeDWallCalendar({
             width: columns * (panelWidth + gap),
             transformStyle: "preserve-3d",
             transform: `rotateX(0deg) rotateY(0deg)`,
-            transition: "transform 300ms cubic-bezier(0.25, 0.8, 0.25, 1)",
+            transition: "transform 700ms cubic-bezier(0.25, 0.8, 0.25, 1)",
           }}
         >
           <div
@@ -166,10 +166,10 @@ export function ThreeDWallCalendar({
                     transform: `translateZ(${z}px)`,
                   }}
                 >
-                  <Card className={cn(cardClass, isTodayDay && "border-2 border-[var(--accent)]")}>
+                  <Card className={cn(cardClass)}>
                     <CardContent className="p-3 h-full flex flex-col justify-between">
                       <div className="flex justify-between items-start">
-                        <div className={cn("text-lg font-display font-bold", isTodayDay ? "bg-[var(--accent)] text-white px-2 py-0.5 rounded-md shadow-sm" : hasEvents ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{format(day, "MMM d")}</div>
+                        <div className={cn("text-lg font-display font-bold transition-colors", isTodayDay ? "text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" : hasEvents ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{format(day, "MMM d")}</div>
                         <div className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{format(day, "EEE")}</div>
                       </div>
 

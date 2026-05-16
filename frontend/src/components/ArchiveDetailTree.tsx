@@ -34,34 +34,46 @@ export function ArchiveDetailTree({ entries }: { entries: ArchiveEntry[] }) {
       root: { id: "root", name: "Maps", isFolder: true, children: [] }
     }
 
-    const byType: Record<string, ArchiveEntry[]> = {};
-    entries.forEach(e => {
-      if (!byType[e.map_type]) byType[e.map_type] = [];
-      byType[e.map_type].push(e);
-    });
+    entries.forEach(entry => {
+      const label = MAP_TYPE_LABELS[entry.map_type] || entry.map_type;
+      let groupName = "Other";
+      let subGroupName = "Maps";
 
-    Object.keys(byType).forEach(type => {
-      const typeId = `folder-${type}`;
-      nodes.root.children!.push(typeId);
-      
-      const typeLabel = MAP_TYPE_LABELS[type] || type;
-      nodes[typeId] = {
-        id: typeId,
-        name: typeLabel,
-        isFolder: true,
-        children: []
-      };
+      if (label.includes("Surface Analysis")) {
+        groupName = "Surface Analysis (Canada Coverage)";
+        subGroupName = label.split(" - ")[1] || "Default";
+      } else if (label.includes("Northern Hemispheric")) {
+        groupName = "Northern Hemispheric";
+        subGroupName = label.split(" - ")[1] || "Default";
+      } else if (label.includes("Upper Air")) {
+        groupName = "Upper Air (Pressure Maps)";
+        subGroupName = label.split(" - ")[1] || "Default";
+      } else {
+        groupName = label;
+      }
 
-      byType[type].forEach(entry => {
-        const fileId = `file-${entry.path || entry.filename}`;
-        nodes[typeId].children!.push(fileId);
+      const groupId = `group-${groupName}`;
+      if (!nodes[groupId]) {
+        nodes.root.children!.push(groupId);
+        nodes[groupId] = { id: groupId, name: groupName, isFolder: true, children: [] };
+      }
+
+      const subGroupId = `sub-${groupName}-${subGroupName}`;
+      if (!nodes[subGroupId]) {
+        nodes[groupId].children!.push(subGroupId);
+        nodes[subGroupId] = { id: subGroupId, name: subGroupName, isFolder: true, children: [] };
+      }
+
+      const fileId = `file-${entry.path || entry.filename}`;
+      if (!nodes[fileId]) {
+        nodes[subGroupId].children!.push(fileId);
         nodes[fileId] = {
           id: fileId,
           name: entry.filename,
           isFolder: false,
           entry
         };
-      })
+      }
     });
 
     return nodes;
