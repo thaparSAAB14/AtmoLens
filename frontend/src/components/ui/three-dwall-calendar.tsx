@@ -92,7 +92,7 @@ export function ThreeDWallCalendar({
     
     // Inverse rotation: where mouse is, that side comes forward
     const newTiltY = -normalizedX * maxTiltY; 
-    const newTiltX = 25 + (normalizedY * maxTiltX);
+    const newTiltX = 0 + (normalizedY * maxTiltX);
     
     wallRef.current.style.transform = `rotateX(${newTiltX}deg) rotateY(${newTiltY}deg)`;
   }
@@ -100,7 +100,7 @@ export function ThreeDWallCalendar({
   const handlePointerLeave = () => {
     // Smoothly return to center
     if (wallRef.current) {
-      wallRef.current.style.transform = `rotateX(25deg) rotateY(0deg)`;
+      wallRef.current.style.transform = `rotateX(0deg) rotateY(0deg)`;
     }
   }
 
@@ -129,7 +129,7 @@ export function ThreeDWallCalendar({
           style={{
             width: columns * (panelWidth + gap),
             transformStyle: "preserve-3d",
-            transform: `rotateX(25deg) rotateY(0deg)`,
+            transform: `rotateX(0deg) rotateY(0deg)`,
             transition: "transform 300ms cubic-bezier(0.25, 0.8, 0.25, 1)",
           }}
         >
