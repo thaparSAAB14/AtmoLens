@@ -44,11 +44,8 @@ export function ThreeDWallCalendar({
     else setInternalDate(nextDate);
   }
 
+  const containerRef = React.useRef<HTMLDivElement | null>(null)
   const wallRef = React.useRef<HTMLDivElement | null>(null)
-
-  // 3D tilt state
-  const [tiltX, setTiltX] = React.useState(25)
-  const [tiltY, setTiltY] = React.useState(0)
 
   // 80 days continuous wall
   const days = eachDayOfInterval({
@@ -61,14 +58,13 @@ export function ThreeDWallCalendar({
 
   // wheel tilt (optional, can keep or remove, let's keep it for scrolling scale or extra tilt)
   const onWheel = (e: React.WheelEvent) => {
-    setTiltX((t) => Math.max(0, Math.min(50, t + e.deltaY * 0.02)))
-    setTiltY((t) => Math.max(-45, Math.min(45, t + e.deltaX * 0.05)))
+    // Optional: could add z-zoom here by applying to wallRef
   }
 
-  // fluid parallax tilt
+  // fluid parallax tilt (bypasses state to prevent 80-card re-renders)
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!wallRef.current) return;
-    const rect = wallRef.current.getBoundingClientRect();
+    if (!containerRef.current || !wallRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     
@@ -80,14 +76,18 @@ export function ThreeDWallCalendar({
     const maxTiltY = 45; 
     const maxTiltX = 35;
     
-    setTiltY(normalizedX * maxTiltY); 
-    setTiltX(25 - (normalizedY * maxTiltX));
+    // Inverse rotation: where mouse is, that side comes forward
+    const newTiltY = -normalizedX * maxTiltY; 
+    const newTiltX = 25 + (normalizedY * maxTiltX);
+    
+    wallRef.current.style.transform = `rotateX(${newTiltX}deg) rotateY(${newTiltY}deg)`;
   }
 
   const handlePointerLeave = () => {
     // Smoothly return to center
-    setTiltX(25);
-    setTiltY(0);
+    if (wallRef.current) {
+      wallRef.current.style.transform = `rotateX(25deg) rotateY(0deg)`;
+    }
   }
 
   const gap = 12
@@ -95,10 +95,10 @@ export function ThreeDWallCalendar({
   const wallCenterRow = (rowCount - 1) / 2
 
   return (
-    <div className="space-y-6 select-none relative z-10 w-full overflow-hidden flex flex-col items-center">
+    <div className="space-y-6 select-none relative z-10 w-full overflow-visible flex flex-col items-center">
       {/* Wall container */}
       <div
-        ref={wallRef}
+        ref={containerRef}
         onWheel={onWheel}
         onPointerMove={handlePointerMove}
         onPointerLeave={handlePointerLeave}
@@ -106,11 +106,12 @@ export function ThreeDWallCalendar({
         style={{ perspective: 1200 }}
       >
         <div
+          ref={wallRef}
           className="mx-auto flex justify-center items-center"
           style={{
             width: columns * (panelWidth + gap),
             transformStyle: "preserve-3d",
-            transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
+            transform: `rotateX(25deg) rotateY(0deg)`,
             transition: "transform 300ms cubic-bezier(0.25, 0.8, 0.25, 1)",
           }}
         >
