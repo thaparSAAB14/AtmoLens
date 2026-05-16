@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import { formatTimestamp, formatTimestampLocal } from "@/lib/utils";
 import { Calendar, ChevronDown, Database, Download, RefreshCw } from "lucide-react";
+import Image from "next/image";
 
 const WINDOW_OPTIONS = [7, 30, 90] as const;
 
@@ -371,18 +372,19 @@ export function ArchiveGallery() {
                     key={entry.path || `${entry.map_type}-${entry.filename}`}
                     className="group rounded-xl overflow-hidden bg-[var(--surface-container)] border border-[var(--border)]/50 transition-shadow duration-300 hover:shadow-lg hover:shadow-[var(--accent)]/5"
                   >
-                    <div className="aspect-[4/3] overflow-hidden bg-[var(--surface-variant)]">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-[var(--surface-variant)]">
                       <a
                         href={getImageUrl(entry.image_url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`Open ${MAP_TYPE_LABELS[entry.map_type] || entry.map_type}`}
                       >
-                        <img
+                        <Image
                           src={getImageUrl(entry.image_url)}
                           alt={MAP_TYPE_LABELS[entry.map_type] || entry.map_type}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          loading="lazy"
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
                         />
                       </a>
                     </div>
