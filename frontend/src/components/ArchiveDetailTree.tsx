@@ -2,6 +2,7 @@
 
 import React, { useMemo } from "react"
 import { useTree } from "@headless-tree/react"
+import { syncDataLoaderFeature, selectionFeature, hotkeysCoreFeature, expandAllFeature } from "@headless-tree/core"
 import { FolderIcon, FolderOpenIcon, FileImage, Download, ExternalLink } from "lucide-react"
 import { Tree, TreeItem, TreeItemLabel } from "@/components/ui/tree"
 import { getImageUrl, MAP_TYPE_LABELS, type ArchiveEntry } from "@/lib/api"
@@ -78,6 +79,12 @@ export function ArchiveDetailTree({ entries }: { entries: ArchiveEntry[] }) {
       getItem: (itemId) => treeData[itemId],
       getChildren: (itemId) => treeData[itemId].children ?? [],
     },
+    features: [
+      syncDataLoaderFeature,
+      selectionFeature,
+      hotkeysCoreFeature,
+      expandAllFeature,
+    ],
   });
 
   const handleDownload = async (url: string, filename: string, e: React.MouseEvent) => {

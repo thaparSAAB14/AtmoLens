@@ -6,7 +6,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card"
 import { Trash2 } from "lucide-react"
 import { v4 as uuidv4 } from "uuid"
-import { subDays, addDays, eachDayOfInterval, format } from "date-fns"
+import { subDays, addDays, eachDayOfInterval, format, isToday } from "date-fns"
 import { cn } from "@/lib/utils"
 
 export type CalendarEvent = {
@@ -150,26 +150,26 @@ export function ThreeDWallCalendar({
               const z = Math.max(-80, 40 - Math.abs(rowOffset) * 20)
               const dayEvents = eventsForDay(day)
               const hasEvents = dayEvents.length > 0
+              const isTodayDay = isToday(day)
               
               // Only highlight the whole card if it has events
               const cardClass = hasEvents 
-                ? "h-full overflow-hidden bg-[var(--surface-container)] border border-[var(--accent)] shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)] hover:shadow-[0_0_25px_rgba(var(--accent-rgb),0.4)] transition-all duration-300 hover:scale-[1.15] hover:-translate-y-2 hover:z-50 cursor-pointer pointer-events-auto" 
+                ? "h-full overflow-hidden bg-[var(--surface-container)] border border-[var(--accent)] shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)] hover:shadow-[0_0_25px_rgba(var(--accent-rgb),0.4)] transition-all duration-300 hover:scale-[1.15] hover:-translate-y-2 cursor-pointer pointer-events-auto" 
                 : "h-full overflow-hidden bg-[var(--surface)] border border-[var(--border)] opacity-60";
 
               return (
                 <div
                   key={day.toISOString()}
-                  className={cn("relative group", !hasEvents && "pointer-events-none")}
+                  className={cn("relative group transition-all duration-300 hover:z-50", !hasEvents && "pointer-events-none")}
                   onClick={() => hasEvents && onDayClick?.(day)}
                   style={{
                     transform: `translateZ(${z}px)`,
-                    zIndex: Math.round(100 - Math.abs(rowOffset)),
                   }}
                 >
-                  <Card className={cardClass}>
+                  <Card className={cn(cardClass, isTodayDay && "border-2 border-[var(--accent)]")}>
                     <CardContent className="p-3 h-full flex flex-col justify-between">
                       <div className="flex justify-between items-start">
-                        <div className={cn("text-lg font-display font-bold", hasEvents ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{format(day, "MMM d")}</div>
+                        <div className={cn("text-lg font-display font-bold", isTodayDay ? "bg-[var(--accent)] text-white px-2 py-0.5 rounded-md shadow-sm" : hasEvents ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{format(day, "MMM d")}</div>
                         <div className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{format(day, "EEE")}</div>
                       </div>
 
