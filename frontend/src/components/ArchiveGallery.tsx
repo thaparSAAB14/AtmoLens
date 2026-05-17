@@ -251,7 +251,7 @@ export function ArchiveGallery() {
               <p className="text-[var(--text-secondary)]">No archived maps available in this timeframe</p>
             </div>
           ) : (
-            <div className="w-full relative overflow-visible pt-4 pb-12">
+            <div className="w-full relative overflow-visible pt-12 pb-12 mt-8">
               <ThreeDWallCalendar 
                 events={calendarEvents} 
                 onDayClick={setSelectedDate} 
