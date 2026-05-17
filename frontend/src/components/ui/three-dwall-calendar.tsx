@@ -31,7 +31,7 @@ export function ThreeDWallCalendar({
   onDayClick,
   panelWidth = 140,
   panelHeight = 110,
-  columns = 10,
+  columns = 8,
   currentDate,
   onDateChange
 }: ThreeDWallCalendarProps) {
