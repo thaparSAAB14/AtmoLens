@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { MapViewer } from "@/components/MapViewer";
 import { MapTypeSelector } from "@/components/MapTypeSelector";
-import { StatusBar } from "@/components/StatusBar";
 import MagnetLines from "@/components/MagnetLines";
 
 export default function MapsPage() {
@@ -26,11 +25,6 @@ export default function MapsPage() {
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--background)]/30 to-[var(--background)]" />
-      </div>
-
-      {/* ─── Status Bar ─────────────────────────────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-6 py-6 transition-all duration-300">
-        <StatusBar />
       </div>
 
       {/* ─── Page Header ────────────────────────────────────────────────── */}
