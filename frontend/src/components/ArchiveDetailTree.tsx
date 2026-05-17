@@ -61,17 +61,11 @@ export function ArchiveDetailTree({ entries }: { entries: ArchiveEntry[] }) {
       const subGroupId = `sub-${groupName}-${subGroupName}`;
       if (!nodes[subGroupId]) {
         nodes[groupId].children!.push(subGroupId);
-        nodes[subGroupId] = { id: subGroupId, name: subGroupName, isFolder: true, children: [] };
-      }
-
-      const fileId = `file-${entry.path || entry.filename}`;
-      if (!nodes[fileId]) {
-        nodes[subGroupId].children!.push(fileId);
-        nodes[fileId] = {
-          id: fileId,
-          name: entry.filename,
-          isFolder: false,
-          entry
+        nodes[subGroupId] = { 
+          id: subGroupId, 
+          name: subGroupName, 
+          isFolder: false, 
+          entry 
         };
       }
     });

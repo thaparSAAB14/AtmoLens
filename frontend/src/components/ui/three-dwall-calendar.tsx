@@ -157,19 +157,22 @@ export function ThreeDWallCalendar({
                 ? "h-full overflow-hidden bg-[var(--surface-container)] border border-[var(--accent)] shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)] hover:shadow-[0_0_25px_rgba(var(--accent-rgb),0.4)] transition-all duration-300 hover:scale-[1.15] hover:-translate-y-2 cursor-pointer pointer-events-auto" 
                 : "h-full overflow-hidden bg-[var(--surface)] border border-[var(--border)] opacity-60";
 
+              const baseZ = Math.round(20 - Math.abs(rowOffset));
+
               return (
                 <div
                   key={day.toISOString()}
-                  className={cn("relative group transition-all duration-300 hover:z-50", !hasEvents && "pointer-events-none")}
+                  className={cn("relative group transition-all duration-300 z-[var(--base-z)] hover:z-[50]", !hasEvents && "pointer-events-none")}
                   onClick={() => hasEvents && onDayClick?.(day)}
                   style={{
                     transform: `translateZ(${z}px)`,
-                  }}
+                    "--base-z": baseZ,
+                  } as React.CSSProperties}
                 >
                   <Card className={cn(cardClass)}>
                     <CardContent className="p-3 h-full flex flex-col justify-between">
                       <div className="flex justify-between items-start">
-                        <div className={cn("text-lg font-display font-bold transition-colors", isTodayDay ? "text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" : hasEvents ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{format(day, "MMM d")}</div>
+                        <div className={cn("text-lg font-display font-bold transition-colors", isTodayDay ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]" : hasEvents ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{format(day, "MMM d")}</div>
                         <div className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{format(day, "EEE")}</div>
                       </div>
 
