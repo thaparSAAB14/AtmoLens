@@ -157,7 +157,7 @@ export function ThreeDWallCalendar({
               if (hasEvents) {
                 cardClass += "cursor-pointer pointer-events-auto shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)] group-hover:shadow-[0_0_30px_rgba(var(--accent-rgb),0.5)] ";
                 if (isTodayDay) {
-                  cardClass += "bg-transparent border-2 border-[var(--accent)] shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] group-hover:shadow-[0_0_35px_rgba(var(--accent-rgb),0.5)] ";
+                  cardClass += "bg-[var(--surface-container)] border-2 border-[var(--foreground)] ";
                 } else {
                   cardClass += "bg-[var(--surface-container)] border-[var(--accent)] ";
                 }
