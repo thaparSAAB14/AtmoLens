@@ -31,13 +31,13 @@ export function ThreeDWallCalendar({
   onDayClick,
   panelWidth = 140,
   panelHeight = 110,
-  columns = 7,
+  columns = 10,
   currentDate,
   onDateChange
 }: ThreeDWallCalendarProps) {
   const [internalDate, setInternalDate] = React.useState<Date>(new Date())
   const dateRef = currentDate || internalDate;
-  
+
   const handleSetDateRef = (updater: (d: Date) => Date) => {
     const nextDate = updater(dateRef);
     if (onDateChange) onDateChange(nextDate);
@@ -50,9 +50,9 @@ export function ThreeDWallCalendar({
   // Calculate date bounds from actual events (10 days padding)
   const { minDate, maxDate } = React.useMemo(() => {
     if (!events || events.length === 0) {
-      return { 
-        minDate: subDays(dateRef, 10), 
-        maxDate: addDays(dateRef, 10) 
+      return {
+        minDate: subDays(dateRef, 10),
+        maxDate: addDays(dateRef, 10)
       };
     }
     const timestamps = events.map(e => new Date(e.date).getTime());
@@ -81,19 +81,19 @@ export function ThreeDWallCalendar({
     const rect = containerRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    
+
     // Calculate distance from center (-1 to 1)
     const normalizedX = (e.clientX - centerX) / (rect.width / 2);
     const normalizedY = (e.clientY - centerY) / (rect.height / 2);
 
     // Max rotation angles - reduced for subtle, smooth tilt
-    const maxTiltY = 15; 
+    const maxTiltY = 15;
     const maxTiltX = 10;
-    
+
     // Inverse rotation: where mouse is, that side comes forward
-    const newTiltY = -normalizedX * maxTiltY; 
+    const newTiltY = -normalizedX * maxTiltY;
     const newTiltX = 0 + (normalizedY * maxTiltX);
-    
+
     wallRef.current.style.transform = `rotateX(${newTiltX}deg) rotateY(${newTiltY}deg)`;
   }
 
@@ -107,13 +107,13 @@ export function ThreeDWallCalendar({
   const gap = 12
   const rowCount = Math.ceil(days.length / columns)
   const wallCenterRow = (rowCount - 1) / 2
-  
+
   // Dynamically calculate height to prevent footer overlap
   const gridHeight = rowCount * (panelHeight + gap)
   const containerHeight = Math.max(600, gridHeight + 100)
 
   return (
-    <div className="space-y-6 select-none relative z-50 w-full overflow-visible flex flex-col items-center">
+    <div className="space-y-6 select-none relative z-10 w-full overflow-visible flex flex-col items-center">
       {/* Wall container */}
       <div
         ref={containerRef}
@@ -151,9 +151,9 @@ export function ThreeDWallCalendar({
               const dayEvents = eventsForDay(day)
               const hasEvents = dayEvents.length > 0
               const isTodayDay = isToday(day)
-              
+
               let cardClass = "h-full overflow-hidden transition-all duration-300 ";
-              
+
               if (hasEvents) {
                 cardClass += "cursor-pointer pointer-events-auto shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)] group-hover:shadow-[0_0_30px_rgba(var(--accent-rgb),0.5)] ";
                 if (isTodayDay) {
@@ -192,7 +192,7 @@ export function ThreeDWallCalendar({
                         </div>
                       )}
                     </CardContent>
-                    
+
                     {/* Glowing indicator line at bottom if active */}
                     {hasEvents && (
                       <div className={cn("absolute bottom-0 left-0 right-0 h-1 opacity-80", isTodayDay ? "bg-black/20" : "bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]")} />
