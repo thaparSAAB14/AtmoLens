@@ -51,7 +51,9 @@
   --sidebar-accent-foreground: #1e9df1;
   --sidebar-primary-foreground: #ffffff;
 
-  /* Component compatibility tokens */
+  /* Component compatibility tokens (override --accent to the brand blue) */
+  --accent-surface: #E3ECF6;
+  --accent: #1e9df1;
   --surface: #ffffff;
   --surface-container: #f7f8f8;
   --surface-container-high: #eef1f3;
@@ -106,7 +108,9 @@
   --sidebar-accent-foreground: #1c9cf0;
   --sidebar-primary-foreground: #ffffff;
 
-  /* Component compatibility tokens */
+  /* Component compatibility tokens (override --accent to the brand blue) */
+  --accent-surface: #061622;
+  --accent: #1c9cf0;
   --surface: #000000;
   --surface-container: #17181c;
   --surface-container-high: #22252a;
