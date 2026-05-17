@@ -169,10 +169,9 @@ export function ThreeDWallCalendar({
                 <div
                   key={day.toISOString()}
                   className={cn(
-                    "relative group transition-all duration-500 will-change-transform",
+                    "relative group transition-all duration-500 will-change-transform pointer-events-none",
                     "[transform:translateZ(var(--card-z))]",
-                    hasEvents && "hover:[transform:translateZ(120px)_scale(1.15)_translateY(-8px)] hover:z-50",
-                    !hasEvents && "pointer-events-none"
+                    hasEvents && "hover:[transform:translateZ(120px)_scale(1.15)_translateY(-8px)] hover:z-50"
                   )}
                   onClick={() => hasEvents && onDayClick?.(day)}
                   style={{
