@@ -113,7 +113,7 @@ export function ThreeDWallCalendar({
   const containerHeight = Math.max(600, gridHeight + 100)
 
   return (
-    <div className="space-y-6 select-none relative z-10 w-full overflow-visible flex flex-col items-center">
+    <div className="space-y-6 select-none relative z-50 w-full overflow-visible flex flex-col items-center">
       {/* Wall container */}
       <div
         ref={containerRef}
@@ -152,10 +152,18 @@ export function ThreeDWallCalendar({
               const hasEvents = dayEvents.length > 0
               const isTodayDay = isToday(day)
               
-              // Only highlight the whole card if it has events
-              const cardClass = hasEvents 
-                ? "h-full overflow-hidden bg-[var(--surface-container)] border border-[var(--accent)] shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)] group-hover:shadow-[0_0_30px_rgba(var(--accent-rgb),0.5)] cursor-pointer pointer-events-auto transition-all duration-300" 
-                : "h-full overflow-hidden bg-[var(--surface)] border border-[var(--border)] opacity-60 transition-all duration-300";
+              let cardClass = "h-full overflow-hidden transition-all duration-300 ";
+              
+              if (hasEvents) {
+                cardClass += "cursor-pointer pointer-events-auto shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)] group-hover:shadow-[0_0_30px_rgba(var(--accent-rgb),0.5)] ";
+                if (isTodayDay) {
+                  cardClass += "bg-white text-black border-white shadow-[0_0_25px_rgba(255,255,255,0.7)] group-hover:shadow-[0_0_40px_rgba(255,255,255,0.9)] ";
+                } else {
+                  cardClass += "bg-[var(--surface-container)] border-[var(--accent)] ";
+                }
+              } else {
+                cardClass += "bg-[var(--surface)] border-[var(--border)] opacity-60 ";
+              }
 
               return (
                 <div
@@ -171,7 +179,7 @@ export function ThreeDWallCalendar({
                     "--card-z": `${z}px`,
                   } as React.CSSProperties}
                 >
-                  <Card className={cn(cardClass, isTodayDay && "bg-white text-black border-white shadow-[0_0_25px_rgba(255,255,255,0.7)] group-hover:shadow-[0_0_40px_rgba(255,255,255,0.9)]")}>
+                  <Card className={cardClass}>
                     <CardContent className="p-3 h-full flex flex-col justify-between">
                       <div className="flex justify-between items-start">
                         <div className={cn("text-lg font-display font-bold transition-colors", isTodayDay ? "text-black" : hasEvents ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{format(day, "MMM d")}</div>
