@@ -151,23 +151,23 @@ export function ArchiveDetailTree({ entries }: { entries: ArchiveEntry[] }) {
                     </span>
                     
                     <div className="flex items-center gap-2">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(getImageUrl(data.entry!.image_url), "_blank");
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[var(--surface-container-high)] text-[var(--text-secondary)] hover:text-white hover:bg-[var(--accent-dim)] transition-all border border-[var(--border)]"
+                      <a 
+                        href={getImageUrl(data.entry!.image_url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[var(--accent)] hover:text-[var(--accent-glow)] hover:underline underline-offset-2 transition-all text-sm font-medium"
                       >
                         <ExternalLink size={14} />
                         View
-                      </button>
+                      </a>
                       
                       <button 
                         onClick={(e) => handleDownload(getImageUrl(data.entry!.image_url), data.entry!.filename, e)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[var(--accent)] text-white hover:bg-[var(--accent-dim)] transition-all shadow-sm"
+                        className="flex items-center justify-center p-1.5 rounded-md bg-[var(--surface-container-high)] text-[var(--text-secondary)] hover:text-[var(--accent)] hover:bg-[var(--accent-dim)] transition-all border border-[var(--border)]"
+                        title="Download"
                       >
                         <Download size={14} />
-                        DL WebP
                       </button>
                     </div>
                   </div>
