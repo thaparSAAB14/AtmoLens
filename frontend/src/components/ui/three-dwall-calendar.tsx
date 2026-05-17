@@ -157,7 +157,7 @@ export function ThreeDWallCalendar({
               if (hasEvents) {
                 cardClass += "cursor-pointer pointer-events-auto shadow-[0_0_15px_rgba(var(--accent-rgb),0.15)] group-hover:shadow-[0_0_30px_rgba(var(--accent-rgb),0.5)] ";
                 if (isTodayDay) {
-                  cardClass += "bg-white text-black border-white shadow-[0_0_25px_rgba(255,255,255,0.7)] group-hover:shadow-[0_0_40px_rgba(255,255,255,0.9)] ";
+                  cardClass += "bg-[var(--accent)] text-white border-[var(--accent)] shadow-[0_0_25px_rgba(var(--accent-rgb),0.5)] group-hover:shadow-[0_0_40px_rgba(var(--accent-rgb),0.7)] ";
                 } else {
                   cardClass += "bg-[var(--surface-container)] border-[var(--accent)] ";
                 }
@@ -181,12 +181,12 @@ export function ThreeDWallCalendar({
                   <Card className={cardClass}>
                     <CardContent className="p-3 h-full flex flex-col justify-between">
                       <div className="flex justify-between items-start">
-                        <div className={cn("text-lg font-display font-bold transition-colors", isTodayDay ? "text-black" : hasEvents ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{format(day, "MMM d")}</div>
-                        <div className={cn("text-[10px] uppercase tracking-widest transition-colors", isTodayDay ? "text-neutral-500" : "text-[var(--text-muted)]")}>{format(day, "EEE")}</div>
+                        <div className={cn("text-lg font-display font-bold transition-colors", isTodayDay ? "text-white" : hasEvents ? "text-[var(--accent)]" : "text-[var(--text-muted)]")}>{format(day, "MMM d")}</div>
+                        <div className={cn("text-[10px] uppercase tracking-widest transition-colors", isTodayDay ? "text-white/70" : "text-[var(--text-muted)]")}>{format(day, "EEE")}</div>
                       </div>
 
                       {hasEvents && (
-                        <div className={cn("mt-auto text-xs font-medium", isTodayDay ? "text-neutral-700" : "text-[var(--text-secondary)]")}>
+                        <div className={cn("mt-auto text-xs font-medium", isTodayDay ? "text-white/80" : "text-[var(--text-secondary)]")}>
                           {dayEvents.length} map{dayEvents.length !== 1 ? 's' : ''}
                         </div>
                       )}
@@ -194,7 +194,7 @@ export function ThreeDWallCalendar({
 
                     {/* Glowing indicator line at bottom if active */}
                     {hasEvents && (
-                      <div className={cn("absolute bottom-0 left-0 right-0 h-1 opacity-80", isTodayDay ? "bg-black/20" : "bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]")} />
+                      <div className={cn("absolute bottom-0 left-0 right-0 h-1 opacity-80", isTodayDay ? "bg-white/30" : "bg-[var(--accent)] shadow-[0_0_10px_var(--accent)]")} />
                     )}
                   </Card>
                 </div>
