@@ -125,18 +125,18 @@ export function StatusBar() {
   /* ── Error state ───────────────────────────────────────────────────── */
   if (phase === "error" && !status) {
     return (
-      <div className="relative overflow-hidden rounded-xl bg-red-500/8 border border-red-500/15">
+      <div className="relative overflow-hidden rounded-xl bg-red-50 border border-red-200 dark:bg-red-950/20 dark:border-red-900/50">
         <div className="flex flex-wrap items-center gap-3 px-4 py-2.5">
           <div className="flex items-center gap-2.5">
             <div className={`w-2 h-2 rounded-full ${dotClass} ring-4 ${ringClass}`} />
-            <span className="text-red-400 text-xs font-label uppercase tracking-wider">
+            <span className="text-red-700 dark:text-red-400 text-xs font-label uppercase tracking-wider">
               {label}
             </span>
           </div>
-          <span className="text-red-400/70 text-xs">Live updates unavailable</span>
+          <span className="text-red-600/80 dark:text-red-400/70 text-xs">Live updates unavailable</span>
           <button
             onClick={() => load()}
-            className="ml-auto text-xs font-label bg-red-500/12 text-red-300 hover:bg-red-500/20 px-3 py-1 rounded-lg transition-all duration-200 hover:scale-[1.02]"
+            className="ml-auto text-xs font-semibold bg-red-600 text-white hover:bg-red-700 dark:bg-red-500/20 dark:text-red-300 dark:hover:bg-red-500/30 px-3 py-1 rounded-lg transition-all duration-200 hover:scale-[1.02] shadow-xs"
           >
             Retry
           </button>

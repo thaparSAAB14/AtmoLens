@@ -22,10 +22,10 @@ export function MapTypeSelector({ selected, onChange }: MapTypeSelectorProps) {
                 key={type}
                 onClick={() => onChange(type)}
                 className={cn(
-                  "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300",
+                  "px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 shadow-xs",
                   selected === type
-                    ? "bg-[var(--accent-dim)] text-[var(--accent)]"
-                    : "bg-[var(--surface-container)] text-[var(--text-muted)] hover:bg-[var(--surface-container-high)] hover:text-[var(--text-secondary)]"
+                    ? "bg-[var(--accent)] text-white shadow-sm"
+                    : "bg-[var(--surface-container)] text-[var(--text-secondary)] hover:bg-[var(--surface-container-high)] hover:text-[var(--text-primary)]"
                 )}
               >
                 {MAP_TYPE_LABELS[type]?.replace("Surface Analysis — ", "").replace("Upper Air — ", "") || type}

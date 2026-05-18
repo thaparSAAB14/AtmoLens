@@ -109,7 +109,7 @@ export default function HomePage() {
           >
             <Link
               href="/maps"
-              className="group flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-glow)] text-[var(--accent-foreground)] font-semibold hover:scale-[1.02] transition-all duration-300 hover:shadow-lg hover:shadow-[var(--accent)]/20"
+              className="group flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-glow)] text-white font-semibold hover:scale-[1.02] transition-all duration-300 hover:shadow-lg hover:shadow-[var(--accent)]/20"
             >
               <Eye size={18} />
               View Live Maps

@@ -199,16 +199,16 @@ export function MapViewer({ selectedType }: MapViewerProps) {
 
   if (error && !hasAnyData) {
     return (
-      <div className="flex items-center justify-center h-[500px] rounded-2xl bg-red-500/5">
+      <div className="flex items-center justify-center h-[500px] rounded-2xl border border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/20">
         <div className="text-center px-6">
-          <p className="text-red-400 font-medium">{error}</p>
-          <p className="text-[var(--text-muted)] text-sm mt-2">Please try again in a moment.</p>
+          <p className="text-red-700 dark:text-red-400 font-semibold text-lg">{error}</p>
+          <p className="text-red-600/80 dark:text-red-400/70 text-sm mt-2">Please try again in a moment.</p>
           <button
             onClick={() => {
               setLoading(true);
               fetchMaps();
             }}
-            className="mt-4 px-4 py-2 rounded-lg bg-[var(--accent-dim)] text-[var(--accent)] text-sm font-medium hover:bg-[var(--accent)]/15 transition-colors disabled:opacity-60"
+            className="mt-5 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white dark:bg-red-500/20 dark:text-red-200 dark:hover:bg-red-500/30 text-sm font-semibold transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
             disabled={isRefreshing}
           >
             {isRefreshing ? "Retrying…" : "Try again"}
@@ -226,7 +226,7 @@ export function MapViewer({ selectedType }: MapViewerProps) {
             <p className="text-[var(--text-primary)] text-xl font-display font-semibold">
               No maps indexed yet
             </p>
-            <p className="text-[var(--text-muted)] text-sm mt-3">
+            <p className="text-[var(--text-secondary)] text-sm mt-3 max-w-md mx-auto">
               We fetch new maps automatically every 30 minutes. If you just deployed, the
               first sync may take a few minutes to appear.
             </p>
@@ -235,7 +235,7 @@ export function MapViewer({ selectedType }: MapViewerProps) {
                 setLoading(true);
                 fetchMaps();
               }}
-              className="mt-5 px-4 py-2 rounded-lg bg-[var(--accent-dim)] text-[var(--accent)] text-sm font-medium hover:bg-[var(--accent)]/15 transition-colors disabled:opacity-60"
+              className="mt-5 px-5 py-2.5 rounded-xl bg-[var(--accent)] text-white hover:opacity-90 transition-all font-semibold shadow-sm hover:scale-[1.02] active:scale-[0.98] disabled:opacity-60"
               disabled={isRefreshing}
             >
               {isRefreshing ? "Refreshing…" : "Refresh"}
@@ -263,13 +263,13 @@ export function MapViewer({ selectedType }: MapViewerProps) {
   return (
     <div className="space-y-4">
       {error && hasAnyData && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
-          <p className="text-amber-200 text-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/20 px-4 py-3">
+          <p className="text-amber-800 dark:text-amber-300 text-sm">
             Live updates are temporarily unavailable. Showing the last available map.
           </p>
           <button
             onClick={() => fetchMaps()}
-            className="px-3 py-1.5 rounded-lg bg-amber-500/15 text-amber-200 text-xs font-medium hover:bg-amber-500/20 transition-colors disabled:opacity-60"
+            className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/30 text-xs font-semibold transition-all disabled:opacity-60 shadow-sm"
             disabled={isRefreshing}
           >
             {isRefreshing ? "Refreshing…" : "Retry"}
@@ -292,10 +292,10 @@ export function MapViewer({ selectedType }: MapViewerProps) {
           {/* Toggle original/processed */}
           <button
             onClick={() => hasOriginal && setShowOriginal((v) => !v)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 shadow-sm ${
               isShowingOriginal
-                ? "bg-amber-500/20 text-amber-300"
-                : "bg-[var(--accent-dim)] text-[var(--accent)]"
+                ? "bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/30"
+                : "bg-[var(--accent)] text-white hover:opacity-90"
             }`}
             disabled={!hasOriginal}
             title={hasOriginal ? "Toggle original/enhanced" : "Original not available for this map yet"}
