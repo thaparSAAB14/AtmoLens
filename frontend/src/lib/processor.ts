@@ -383,13 +383,6 @@ const INK_LOW_PRESSURE: RGB = { r: 41, g: 128, b: 185 }; // blue for L markers
 
 export async function processImage(rawBytes: Buffer, mapType?: string): Promise<Buffer> {
   const image = await Jimp.read(rawBytes);
-  
-  const maxMapWidth = process.env.MAX_MAP_WIDTH ? Number.parseInt(process.env.MAX_MAP_WIDTH, 10) : 1200;
-  if (image.bitmap.width > maxMapWidth) {
-    const targetH = Math.round(image.bitmap.height * (maxMapWidth / image.bitmap.width));
-    image.resize({ w: maxMapWidth, h: targetH });
-  }
-
   const { width, height, data } = image.bitmap;
   const palette = selectPalette(mapType);
 
@@ -478,6 +471,16 @@ export async function processImage(rawBytes: Buffer, mapType?: string): Promise<
         const nearLine = hasForegroundNeighbor(foregroundMask, width, height, pixelIndex);
         const isWater = useWaterMask && waterMask !== null && waterMask[pixelIndex] === 1;
         applyTone(data, offset, isWater ? palette.water : palette.land, nearLine);
+    }
+  }
+
+  // ── Color depth quantization: round RGB to nearest multiple of MAP_QUANTIZATION_FACTOR to optimize PNG size losslessly in grid
+  const quantizeFactor = process.env.MAP_QUANTIZATION_FACTOR ? Number.parseInt(process.env.MAP_QUANTIZATION_FACTOR, 10) : 16;
+  if (quantizeFactor > 1) {
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = Math.round(data[i] / quantizeFactor) * quantizeFactor;
+      data[i + 1] = Math.round(data[i + 1] / quantizeFactor) * quantizeFactor;
+      data[i + 2] = Math.round(data[i + 2] / quantizeFactor) * quantizeFactor;
     }
   }
 

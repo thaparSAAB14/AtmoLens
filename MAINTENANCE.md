@@ -113,7 +113,7 @@ Each run follows strict stages:
 - For emergency storage recovery: `GET /api/cron/cleanup?mode=prune&keep=5`
 - For orphaned blob cleanup: `GET /api/cron/cleanup-orphans`
 - Monitor usage in Vercel Dashboard → Usage → Blob Data Storage.
-- Budget: 12 types × ~3.5MB avg = ~42MB/day → ~588MB for 14 days. Auto-prune keeps it safely within 1GB.
+- Budget: 12 types × ~1.5MB avg = ~18MB/day → ~252MB for 14 days. Color depth quantization keeps it safely within 1GB.
 
 ---
 
