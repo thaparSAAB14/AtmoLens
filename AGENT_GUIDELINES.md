@@ -31,7 +31,7 @@ Required characteristics:
 - per-map isolation (single map failure should not crash whole run)
 - deterministic dedupe by source hash + processing version
 - stale-map re-processing in batches of 10
-- auto-cleanup via `cleanupOldMaps(30)` before each ingestion cycle
+- auto-cleanup via `cleanupOldMaps(14)` before each ingestion cycle
 - time-budgeted execution to prevent Vercel timeout crashes
 
 Do not regress these characteristics when refactoring.

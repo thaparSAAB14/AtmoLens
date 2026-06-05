@@ -33,7 +33,7 @@ export async function GET() {
 
     return NextResponse.json({
       system: "AtmoLens",
-      version: "3.2.3 (Hobby Cron + GitHub Scheduler)",
+      version: "3.2.4 (Hobby Cron + GitHub Scheduler)",
       status: degraded ? "degraded" : "online",
       archive_count: archiveCount,
       map_types: mapTypes,

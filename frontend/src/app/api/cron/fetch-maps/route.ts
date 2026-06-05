@@ -358,7 +358,25 @@ async function processSingleMap(
 }
 
 export async function GET(request: NextRequest) {
-  // ── Auth gate removed to allow frontend Force Sync in open-source deployment ──
+  // ── Auth gate: check CRON_SECRET when configured, allow same-origin frontend requests
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret) {
+    const authHeader = request.headers.get("Authorization");
+    const referer = request.headers.get("referer");
+    const secFetchSite = request.headers.get("sec-fetch-site");
+    
+    const hasValidToken = authHeader === `Bearer ${cronSecret}`;
+    const isSameOrigin = 
+      secFetchSite === "same-origin" || 
+      (referer && referer.startsWith(request.nextUrl.origin));
+      
+    if (!hasValidToken && !isSameOrigin) {
+      return NextResponse.json(
+        { status: "unauthorized", message: "Invalid or missing CRON_SECRET." },
+        { status: 401 }
+      );
+    }
+  }
 
   const rawTrigger = request.nextUrl.searchParams.get("trigger") ?? "cron";
   const trigger = rawTrigger.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 32);
@@ -405,12 +423,13 @@ export async function GET(request: NextRequest) {
   try {
     await initDb();
 
-    // --- Auto-cleanup: enforce 30-day archive retention ---
-    // Delete maps older than 30 days to stay within Vercel Blob 1GB Hobby limit
+    // --- Auto-cleanup: enforce archive retention ---
+    // Delete maps older than the retention period to stay within Vercel Blob 1GB Hobby limit
     try {
-      const cleanupResult = await cleanupOldMaps(30);
+      const retainDays = Number.parseInt(process.env.ARCHIVE_RETENTION_DAYS ?? "14", 10);
+      const cleanupResult = await cleanupOldMaps(retainDays);
       if (cleanupResult.deletedCount > 0) {
-        console.log(`[AutoCleanup] Deleted ${cleanupResult.deletedCount} maps older than 30 days, ${cleanupResult.deletedUrls.length} blob URLs`);
+        console.log(`[AutoCleanup] Deleted ${cleanupResult.deletedCount} maps older than ${retainDays} days, ${cleanupResult.deletedUrls.length} blob URLs`);
         const CLEANUP_BATCH = 50;
         for (let i = 0; i < cleanupResult.deletedUrls.length; i += CLEANUP_BATCH) {
           try {

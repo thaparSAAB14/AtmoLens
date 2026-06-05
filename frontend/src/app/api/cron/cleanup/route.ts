@@ -28,11 +28,11 @@ export async function GET(request: NextRequest) {
       )
     );
 
-    // For age mode: how many days to keep (default from env or 90)
+    // For age mode: how many days to keep (default from env or 14)
     const retainDays = Number.parseInt(
       request.nextUrl.searchParams.get("days") ??
         process.env.ARCHIVE_RETENTION_DAYS ??
-        "90",
+        "14",
       10
     );
 

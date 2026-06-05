@@ -14,7 +14,7 @@ Traditional synoptic charts are often published in **grayscale**, where land ble
 AtmoLens "paints" over the boring parts. It uses a deterministic server-side pipeline to:
 1.  **Ingest**: Automatically fetch the latest charts from ECCC every 30 minutes.
 2.  **Transform**: Apply a custom coloration engine to re-map land, water, and grid-lines while preserving the integrity of the synoptic ink.
-3.  **Archive**: Catalog processed maps into a structured, searchable 30-day archive.
+3.  **Archive**: Catalog processed maps into a structured, searchable 14-day archive.
 4.  **Visualize**: Present the data in a premium, interactive viewer with advanced zoom and pan capabilities.
 
 ---
@@ -38,7 +38,7 @@ A professional-grade inspection tool built directly into the browser:
 *   **Zero Intervention**: Runs 24/7 using GitHub Actions and Vercel Cron.
 *   **Self-Healing**: Automated re-processing logic that can update the entire archive when logic is improved.
 *   **Health Dashboard**: Real-time status monitoring (Connecting → Live → Stale).
-*   **Auto-Cleanup**: 30-day retention policy with automatic blob storage management.
+*   **Auto-Cleanup**: 14-day retention policy with automatic blob storage management.
 
 ---
 
@@ -76,7 +76,7 @@ npm run dev
 | `BLOB_READ_WRITE_TOKEN` | ✅ | Vercel Blob storage token |
 | `CRON_SECRET` | Optional | Auth for maintenance API routes |
 | `BLOB_ACCESS` | Optional | `"public"` or `"private"` (default: `"private"`) |
-| `ARCHIVE_RETENTION_DAYS` | Optional | Days for age-based cleanup (default: `30`) |
+| `ARCHIVE_RETENTION_DAYS` | Optional | Days for age-based cleanup (default: `14`) |
 
 See [`frontend/.env.example`](frontend/.env.example) for the complete list with descriptions.
 
@@ -91,7 +91,7 @@ AtmoLens is optimized for **Vercel (Hobby tier)**:
 3.  Configure the environment variables listed above
 4.  Vercel will auto-deploy on push to `main`
 
-> **Storage Note**: The Hobby plan has a 1GB Blob storage limit. The auto-cleanup system enforces 30-day retention and prunes excess maps to stay within budget.
+> **Storage Note**: The Hobby plan has a 1GB Blob storage limit. The auto-cleanup system enforces 14-day retention and prunes excess maps to stay within budget.
 
 ---
 
@@ -124,7 +124,7 @@ AtmoLens/
 |-------|--------|------|-------------|
 | `/api/status` | GET | — | System health + latest ingest run |
 | `/api/maps/latest` | GET | — | Latest map per type |
-| `/api/maps/archive` | GET | — | Archive browser (query: `?days=30`) |
+| `/api/maps/archive` | GET | — | Archive browser (query: `?days=14`) |
 | `/api/cron/fetch-maps` | GET | — | Main ingestion pipeline |
 | `/api/cron/cleanup` | GET | CRON_SECRET | Storage cleanup (prune/age modes) |
 | `/api/cron/cleanup-orphans` | GET | CRON_SECRET | Delete orphaned blobs |
@@ -150,6 +150,10 @@ AtmoLens was developed by **Priyanshu** with the assistance of:
 ---
 
 ## 📋 Changelog
+
+### v3.2.5 — Storage & Security Hardening (2026-06-05)
+- **Fixed**: Vercel Blob storage quota exceeded (Hobby limit) — reduced default retention from 30 days to 14 days due to large overlay image payload sizes.
+- **Fixed**: Map fetch route (`/api/cron/fetch-maps`) same-origin security gate checks `CRON_SECRET` when configured but allows browser-initiated Force Sync requests safely.
 
 ### v3.2.4 — Production Hardening (2026-05-16)
 - **Fixed**: Vercel Blob storage quota exceeded — added auto-cleanup (30-day retention)

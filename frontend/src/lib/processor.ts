@@ -383,6 +383,13 @@ const INK_LOW_PRESSURE: RGB = { r: 41, g: 128, b: 185 }; // blue for L markers
 
 export async function processImage(rawBytes: Buffer, mapType?: string): Promise<Buffer> {
   const image = await Jimp.read(rawBytes);
+  
+  const maxMapWidth = process.env.MAX_MAP_WIDTH ? Number.parseInt(process.env.MAX_MAP_WIDTH, 10) : 1200;
+  if (image.bitmap.width > maxMapWidth) {
+    const targetH = Math.round(image.bitmap.height * (maxMapWidth / image.bitmap.width));
+    image.resize({ w: maxMapWidth, h: targetH });
+  }
+
   const { width, height, data } = image.bitmap;
   const palette = selectPalette(mapType);
 

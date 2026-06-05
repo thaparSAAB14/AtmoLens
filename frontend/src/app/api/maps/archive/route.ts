@@ -15,8 +15,8 @@ function resolveGroup(mapType: string): GroupName {
 }
 
 function parseArchiveDays(request: NextRequest): number {
-  const raw = Number.parseInt(request.nextUrl.searchParams.get("days") ?? "30", 10);
-  if (!Number.isFinite(raw)) return 30;
+  const raw = Number.parseInt(request.nextUrl.searchParams.get("days") ?? "14", 10);
+  if (!Number.isFinite(raw)) return 14;
   return Math.min(365, Math.max(1, raw));
 }
 
