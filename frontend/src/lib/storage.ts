@@ -517,8 +517,8 @@ export async function getStaleMaps(limit = 10, offset = 0) {
     WHERE original_blob_url IS NOT NULL
       AND (
         processing_version IS NULL 
-        OR (map_type = 'upper_850hpa' AND processing_version <> 'enhancer-v13')
-        OR (map_type <> 'upper_850hpa' AND processing_version <> 'enhancer-v12')
+        OR (map_type = 'upper_850hpa' AND processing_version <> 'enhancer-v15')
+        OR (map_type <> 'upper_850hpa' AND processing_version <> 'enhancer-v14')
       )
     ORDER BY timestamp DESC
     LIMIT ${limit} OFFSET ${offset};

@@ -37,7 +37,7 @@ const SOURCES: Record<string, string> = {
 };
 
 function getProcessingVersion(mapType: string) {
-  return mapType === "upper_850hpa" ? "enhancer-v13" : "enhancer-v12";
+  return mapType === "upper_850hpa" ? "enhancer-v15" : "enhancer-v14";
 }
 const MAX_FETCH_ATTEMPTS = 3;
 const FETCH_TIMEOUT_MS = 25_000;
@@ -448,7 +448,7 @@ export async function GET(request: NextRequest) {
       request.nextUrl.searchParams.get("stale_batch"),
       DEFAULT_STALE_REPROCESS_BATCH
     );
-    runId = await beginIngestRun(trigger, "enhancer-v12-v13-mixed", sourceEntries.length);
+    runId = await beginIngestRun(trigger, "enhancer-v14-v15-mixed", sourceEntries.length);
 
     let okCount = 0;
     let skippedCount = 0;
@@ -567,7 +567,7 @@ export async function GET(request: NextRequest) {
         status: "completed",
         run_id: runId,
         run_status: runStatus,
-        processing_version: "enhancer-v12-v13-mixed",
+        processing_version: "enhancer-v14-v15-mixed",
         reprocessed: reprocessedCount,
         reprocess_orphans_cleared: reprocessSkippedOrphans,
         summary,

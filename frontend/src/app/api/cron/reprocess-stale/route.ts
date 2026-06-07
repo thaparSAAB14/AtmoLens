@@ -22,7 +22,7 @@ const BLOB_ACCESS: "public" | "private" =
   process.env.BLOB_ACCESS === "public" ? "public" : "private";
 
 function getProcessingVersion(mapType: string) {
-  return mapType === "upper_850hpa" ? "enhancer-v13" : "enhancer-v12";
+  return mapType === "upper_850hpa" ? "enhancer-v15" : "enhancer-v14";
 }
 
 function parseBatchSize(value: string | null | undefined, fallback: number): number {
