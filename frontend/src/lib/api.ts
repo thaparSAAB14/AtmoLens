@@ -118,14 +118,14 @@ export async function getLatestMap(mapType: string): Promise<MapInfo> {
   return fetchJSON<MapInfo>(`/api/maps/latest/${mapType}`);
 }
 
-export async function getArchive(days = 30): Promise<ArchiveResponse> {
+export async function getArchive(days = 14): Promise<ArchiveResponse> {
   const qs = new URLSearchParams({ days: String(days) });
   return fetchJSON<ArchiveResponse>(`/api/maps/archive?${qs.toString()}`);
 }
 
 export async function getArchiveByType(
   mapType: string,
-  days = 30
+  days = 14
 ): Promise<{ archive: ArchiveEntry[]; count: number; days_window: number }> {
   const qs = new URLSearchParams({ days: String(days) });
   return fetchJSON(`/api/maps/archive/${mapType}?${qs.toString()}`);

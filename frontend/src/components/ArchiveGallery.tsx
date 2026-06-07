@@ -24,8 +24,8 @@ export function ArchiveGallery() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Always fetch 90 days to populate the extensive 80-day calendar wall
-  const daysWindow = 90;
+  // Fetch 14 days to populate the calendar wall
+  const daysWindow = 14;
   
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);

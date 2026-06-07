@@ -15,7 +15,7 @@ function minutesSince(value: string | null): number | null {
 export async function GET() {
   try {
     const [archiveCount, lastFetchTime, mapTypes, latestRun] = await Promise.all([
-      getArchiveCount(undefined, 30),
+      getArchiveCount(undefined, 14),
       getLastFetchTime(),
       getMapTypes(),
       getLatestIngestRun(),
