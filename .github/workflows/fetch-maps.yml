@@ -2,6 +2,9 @@ name: AtmoLens Map Fetch Scheduler
 
 on:
   schedule:
+    # NOTE: GitHub throttles scheduled workflows under load, so the real cadence is
+    # closer to hourly than every 30 min. The Vercel daily cron is the guaranteed
+    # fallback; this is the best-effort higher-frequency trigger.
     - cron: "*/30 * * * *"
   workflow_dispatch:
 
@@ -9,93 +12,101 @@ concurrency:
   group: atmolens-fetch-maps
   cancel-in-progress: false
 
+# This workflow is a BEST-EFFORT trigger and intentionally NEVER fails the run
+# (it always exits 0), so scheduled runs never send failure notifications. The real
+# outcome is recorded in the step log and the job summary. If ingest is not confirmed
+# for a long time, check /api/status and confirm the CRON_SECRET repository secret
+# matches the CRON_SECRET set in the Vercel project.
+
 jobs:
   trigger-fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Trigger production fetch route
         id: fetch
-        continue-on-error: true
         env:
           ATMO_BASE_URL: https://atmolens.priyanshu.world
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          set -euo pipefail
+          set -u
           URL="${ATMO_BASE_URL}/api/cron/fetch-maps?trigger=github-actions"
           echo "Triggering: ${URL}"
 
-          AUTH_HEADER=""
-          if [ -n "${CRON_SECRET:-}" ]; then
-            AUTH_HEADER="-H \"Authorization: Bearer ${CRON_SECRET}\""
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::warning::CRON_SECRET repository secret is not set - the endpoint rejects requests with HTTP 401. Add it in Settings -> Secrets and variables -> Actions with the SAME value as Vercel."
           fi
 
+          # Quoting-safe request helper (no eval; secret is passed only as a header value).
+          http_code() {
+            curl -sS --max-time 90 -o /dev/null -w '%{http_code}' \
+              -H "Authorization: Bearer ${CRON_SECRET:-}" "$1" || echo "000"
+          }
+
+          RESULT="unknown"
+          LAST_CODE="000"
           for attempt in 1 2 3; do
-            HTTP_CODE="$(eval curl -sS -o /dev/null -w '%{http_code}' ${AUTH_HEADER} \"${URL}\" || true)"
-            echo "Attempt ${attempt}: HTTP ${HTTP_CODE}"
-
-            if [ "${HTTP_CODE}" = "200" ]; then
-              echo "Fetch run completed."
-              echo "result=ok" >> "$GITHUB_OUTPUT"
-              exit 0
+            LAST_CODE="$(http_code "${URL}")"
+            echo "Attempt ${attempt}: HTTP ${LAST_CODE}"
+            case "${LAST_CODE}" in
+              200)
+                RESULT="ok"
+                break
+                ;;
+              401)
+                echo "::warning::HTTP 401 - CRON_SECRET does not match Vercel. Ingest was NOT triggered this run (Vercel's own daily cron is unaffected)."
+                RESULT="auth-failed"
+                break
+                ;;
+              429)
+                echo "Endpoint busy (another run already in progress)."
+                RESULT="busy"
+                ;;
+              *)
+                echo "Unexpected/transient HTTP ${LAST_CODE}."
+                RESULT="error"
+                ;;
+            esac
+            if [ "${attempt}" -lt 3 ]; then
+              sleep $((attempt * 15))
             fi
-
-            if [ "${HTTP_CODE}" = "429" ]; then
-              echo "Fetch route busy (another run in progress). Retrying..."
-              sleep $((attempt * 20))
-              continue
-            fi
-
-            sleep $((attempt * 20))
           done
 
-          echo "::warning::Primary trigger did not complete cleanly. Attempting stale-lock break recovery..."
-          BREAK_URL="${ATMO_BASE_URL}/api/cron/fetch-maps?trigger=github-actions-recovery&break_lock=1&lock_stale_minutes=45"
-          BREAK_HTTP_CODE="$(eval curl -sS -o /dev/null -w '%{http_code}' ${AUTH_HEADER} \"${BREAK_URL}\" || true)"
-          echo "Recovery trigger: HTTP ${BREAK_HTTP_CODE}"
-
-          if [ "${BREAK_HTTP_CODE}" = "200" ]; then
-            echo "result=recovered" >> "$GITHUB_OUTPUT"
-            exit 0
+          if [ "${RESULT}" = "busy" ] || [ "${RESULT}" = "error" ] || [ "${RESULT}" = "unknown" ]; then
+            echo "::warning::Primary trigger did not return 200 (last HTTP ${LAST_CODE}). Attempting stale-lock break recovery..."
+            BREAK_URL="${ATMO_BASE_URL}/api/cron/fetch-maps?trigger=github-actions-recovery&break_lock=1&lock_stale_minutes=45"
+            BREAK_CODE="$(http_code "${BREAK_URL}")"
+            echo "Recovery trigger: HTTP ${BREAK_CODE}"
+            if [ "${BREAK_CODE}" = "200" ]; then
+              RESULT="recovered"
+              LAST_CODE="${BREAK_CODE}"
+            fi
           fi
 
-          echo "result=failed" >> "$GITHUB_OUTPUT"
-          echo "Failed to trigger fetch run after retries and stale-lock recovery."
-          exit 1
+          {
+            echo "result=${RESULT}"
+            echo "last_code=${LAST_CODE}"
+          } >> "$GITHUB_OUTPUT"
 
-      - name: Recovery — retry after cooldown
-        if: steps.fetch.outcome == 'failure'
-        env:
-          ATMO_BASE_URL: https://atmolens.priyanshu.world
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-        run: |
-          echo "::warning::Primary fetch failed. Attempting recovery after 60s cooldown..."
-          sleep 60
-
-          URL="${ATMO_BASE_URL}/api/cron/fetch-maps?trigger=github-actions-recovery"
-          AUTH_HEADER=""
-          if [ -n "${CRON_SECRET:-}" ]; then
-            AUTH_HEADER="-H \"Authorization: Bearer ${CRON_SECRET}\""
-          fi
-          HTTP_CODE="$(eval curl -sS -o /dev/null -w '%{http_code}' ${AUTH_HEADER} \"${URL}\" || true)"
-          echo "Recovery attempt: HTTP ${HTTP_CODE}"
-
-          if [ "${HTTP_CODE}" = "200" ] || [ "${HTTP_CODE}" = "429" ]; then
-            echo "::notice::Recovery succeeded (HTTP ${HTTP_CODE})."
-          else
-            echo "::error::Recovery also failed (HTTP ${HTTP_CODE}). Manual check required."
-            exit 1
-          fi
+          echo "Final result: ${RESULT} (last HTTP ${LAST_CODE})"
+          # Best-effort trigger: never fail the run, so no failure notifications are sent.
+          exit 0
 
       - name: Job summary
         if: always()
         run: |
           RESULT="${{ steps.fetch.outputs.result }}"
-          OUTCOME="${{ steps.fetch.outcome }}"
-          echo "## AtmoLens Fetch Result" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Field | Value |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Step outcome | \`${OUTCOME}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Fetch result | \`${RESULT:-unknown}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Timestamp | $(date -u +'%Y-%m-%dT%H:%M:%SZ') |" >> "$GITHUB_STEP_SUMMARY"
+          LAST_CODE="${{ steps.fetch.outputs.last_code }}"
+          {
+            echo "## AtmoLens Fetch Result"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Result | \`${RESULT:-unknown}\` |"
+            echo "| Last HTTP code | \`${LAST_CODE:-unknown}\` |"
+            echo "| Timestamp | $(date -u +'%Y-%m-%dT%H:%M:%SZ') |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "${RESULT}" != "ok" ] && [ "${RESULT}" != "recovered" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> :warning: Ingest was not confirmed this run. If this persists, verify the CRON_SECRET secret matches Vercel and check /api/status." >> "$GITHUB_STEP_SUMMARY"
+          fi
