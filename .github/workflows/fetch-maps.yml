@@ -17,6 +17,8 @@ concurrency:
 # outcome is recorded in the step log and the job summary. If ingest is not confirmed
 # for a long time, check /api/status and confirm the CRON_SECRET repository secret
 # matches the CRON_SECRET set in the Vercel project.
+# If GitHub auto-disables this schedule after long inactivity (disabled_inactivity),
+# re-enable it in Actions and run workflow_dispatch once to confirm CRON_SECRET wiring.
 
 jobs:
   trigger-fetch:
@@ -97,6 +99,11 @@ jobs:
         run: |
           RESULT="${{ steps.fetch.outputs.result }}"
           LAST_CODE="${{ steps.fetch.outputs.last_code }}"
+          if [ "${RESULT}" = "ok" ] || [ "${RESULT}" = "recovered" ]; then
+            OUTCOME="confirmed"
+          else
+            OUTCOME="not-confirmed"
+          fi
           {
             echo "## AtmoLens Fetch Result"
             echo ""
@@ -104,9 +111,11 @@ jobs:
             echo "|---|---|"
             echo "| Result | \`${RESULT:-unknown}\` |"
             echo "| Last HTTP code | \`${LAST_CODE:-unknown}\` |"
+            echo "| Outcome | \`${OUTCOME}\` |"
             echo "| Timestamp | $(date -u +'%Y-%m-%dT%H:%M:%SZ') |"
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "${RESULT}" != "ok" ] && [ "${RESULT}" != "recovered" ]; then
+            echo "::warning::AtmoLens ingest was not confirmed in this run (result=${RESULT:-unknown}, HTTP=${LAST_CODE:-unknown})."
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "> :warning: Ingest was not confirmed this run. If this persists, verify the CRON_SECRET secret matches Vercel and check /api/status." >> "$GITHUB_STEP_SUMMARY"
           fi

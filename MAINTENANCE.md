@@ -103,6 +103,7 @@ Each run follows strict stages:
 - `BLOB_READ_WRITE_TOKEN` set in Vercel.
 - `BLOB_ACCESS` set (`private` recommended).
 - `CRON_SECRET` set in Vercel + GitHub Actions secrets.
+- If workflow `AtmoLens Map Fetch Scheduler` shows `disabled_inactivity`, re-enable it from GitHub Actions and run `workflow_dispatch` once to verify auth.
 - `ARCHIVE_RETENTION_DAYS` set (default: 14).
 - See `frontend/.env.example` for the complete list.
 
